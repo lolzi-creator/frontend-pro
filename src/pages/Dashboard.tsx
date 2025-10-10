@@ -1,23 +1,56 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useDashboard } from '../hooks/useDashboard'
+import { useToast } from '../contexts/ToastContext'
 import StatsCard from '../components/StatsCard'
 import RecentActivity from '../components/RecentActivity'
 import QuickActions from '../components/QuickActions'
 import OverdueAlerts from '../components/OverdueAlerts'
 import RevenueChart from '../components/RevenueChart'
+import { LoadingSpinner, CardSkeleton, Alert } from '../components'
 
 const Dashboard: React.FC = () => {
-  const { stats, loading, error } = useDashboard()
+  const { stats, loading, error, refetch } = useDashboard()
+  const { showError, showInfo } = useToast()
+
+  // Show error toast when there's an error
+  useEffect(() => {
+    if (error) {
+      showError('Dashboard Error', 'Failed to load dashboard data. Please try again.')
+    }
+  }, [error, showError])
+
 
   if (loading) {
     return (
       <div className="h-full overflow-y-auto">
         <main className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 lg:py-8">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading dashboard...</p>
+          {/* Page Header Skeleton */}
+          <div className="mb-4 lg:mb-6">
+            <div className="h-8 bg-gray-200 rounded w-48 mb-2 animate-pulse"></div>
+            <div className="h-4 bg-gray-200 rounded w-96 animate-pulse"></div>
+          </div>
+
+          {/* Stats Cards Skeleton */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6 mb-6 lg:mb-8">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <CardSkeleton key={index} showActions={false} lines={2} />
+            ))}
+          </div>
+
+          {/* Main Content Skeleton */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div className="lg:col-span-2">
+              <CardSkeleton showImage={false} lines={4} />
             </div>
+            <div className="lg:col-span-1">
+              <CardSkeleton showImage={false} lines={3} />
+            </div>
+          </div>
+
+          {/* Bottom Row Skeleton */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <CardSkeleton showImage={false} lines={3} />
+            <CardSkeleton showImage={false} lines={3} />
           </div>
         </main>
       </div>
@@ -28,17 +61,19 @@ const Dashboard: React.FC = () => {
     return (
       <div className="h-full overflow-y-auto">
         <main className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 lg:py-8">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <p className="text-red-600 mb-2">Failed to load dashboard</p>
-              <p className="text-gray-600 text-sm">{error}</p>
-            </div>
-          </div>
+          <Alert
+            type="error"
+            title="Failed to Load Dashboard"
+            message={error}
+            onClose={() => refetch()}
+          >
+            <button
+              onClick={() => refetch()}
+              className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Try Again
+            </button>
+          </Alert>
         </main>
       </div>
     )
@@ -49,12 +84,25 @@ const Dashboard: React.FC = () => {
       <main className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 lg:py-8">
         {/* Page Header */}
         <div className="mb-4 lg:mb-6">
-          <h2 className="text-xl lg:text-3xl font-bold text-gray-900 mb-1" style={{fontFamily: 'Poppins'}}>
-            Dashboard
-          </h2>
-          <p className="text-gray-600 text-sm">
-            Manage your invoices, quotes, and business finances
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl lg:text-3xl font-bold text-gray-900 mb-1" style={{fontFamily: 'Poppins'}}>
+                Dashboard
+              </h2>
+              <p className="text-gray-600 text-sm">
+                Manage your invoices, quotes, and business finances
+              </p>
+            </div>
+            <button
+              onClick={() => refetch()}
+              className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Refresh
+            </button>
+          </div>
         </div>
 
         {/* Main Stats Row */}

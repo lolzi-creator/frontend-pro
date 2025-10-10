@@ -45,3 +45,4 @@ const CardContent: React.FC<{ children: React.ReactNode; className?: string }> =
 )
 
 export { Card, CardHeader, CardTitle, CardContent }
+export default Card

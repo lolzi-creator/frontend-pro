@@ -1,10 +1,15 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useToast } from '../contexts/ToastContext'
 import Button from '../components/Button'
 import TouchButton from '../components/TouchButton'
 import DataTable from '../components/DataTable'
 import CompactMobileTable from '../components/CompactMobileTable'
 import AdvancedFilters from '../components/AdvancedFilters'
+import ConfirmationModal from '../components/ConfirmationModal'
+import PaymentImportModal from '../components/PaymentImportModal'
+import PaymentModal from '../components/PaymentModal'
+import { TableSkeleton, Alert, LoadingSpinner } from '../components'
 
 // Define Payment interface inline
 interface Payment {
@@ -29,10 +34,17 @@ interface Payment {
 
 const Payments: React.FC = () => {
   const navigate = useNavigate()
+  const { showSuccess, showError, showWarning, showInfo } = useToast()
   const [filters, setFilters] = useState<Record<string, any>>({})
   const [payments, setPayments] = useState<Payment[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; payment: any }>({
+    isOpen: false,
+    payment: null
+  })
+  const [importModal, setImportModal] = useState(false)
+  const [paymentModal, setPaymentModal] = useState(false)
 
   // TODO: Replace with real API call when payments API is available
   React.useEffect(() => {
@@ -56,6 +68,47 @@ const Payments: React.FC = () => {
 
     fetchPayments()
   }, [])
+
+  const handleDeletePayment = async (payment: any) => {
+    try {
+      // Here you would call the API to delete the payment
+      // await apiClient.deletePayment(payment.id)
+      console.log('Deleting payment:', payment.id)
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      // Remove from local state
+      setPayments(prev => prev.filter(p => p.id !== payment.id))
+      showSuccess('Payment Deleted', `Payment of ${payment.amount} ${payment.currency} has been deleted successfully.`)
+    } catch (error) {
+      showError('Delete Failed', 'Failed to delete payment. Please try again.')
+    }
+  }
+
+  const handleCreatePayment = () => {
+    setPaymentModal(true)
+  }
+
+  const handleImportPayments = () => {
+    setImportModal(true)
+  }
+
+  const handlePaymentCreated = (paymentData: any) => {
+    console.log('Payment created:', paymentData)
+    // Add to local state
+    setPayments(prev => [...prev, { ...paymentData, id: Date.now().toString() }])
+    showSuccess('Payment Added', 'Payment has been added successfully.')
+  }
+
+  const handlePaymentsImported = (importData: any) => {
+    console.log('Payments imported:', importData)
+    showSuccess('Payments Imported', 'Payments have been imported successfully.')
+  }
+
+  const handleEditPayment = (payment: any) => {
+    showInfo('Edit Payment', `Edit functionality for payment ${payment.id} will be implemented soon.`)
+  }
 
   const getPaymentMethodIcon = (method: string) => {
     switch (method.toLowerCase()) {
@@ -90,12 +143,19 @@ const Payments: React.FC = () => {
   if (loading) {
     return (
       <div className="p-4 lg:p-8 h-full overflow-y-auto">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading payments...</p>
-          </div>
+        {/* Page Header Skeleton */}
+        <div className="mb-6">
+          <div className="h-8 bg-gray-200 rounded w-48 mb-2 animate-pulse"></div>
+          <div className="h-4 bg-gray-200 rounded w-96 animate-pulse"></div>
         </div>
+
+        {/* Filters Skeleton */}
+        <div className="mb-6">
+          <div className="h-12 bg-gray-200 rounded animate-pulse"></div>
+        </div>
+
+        {/* Table Skeleton */}
+        <TableSkeleton rows={5} columns={6} />
       </div>
     )
   }
@@ -103,17 +163,19 @@ const Payments: React.FC = () => {
   if (error) {
     return (
       <div className="p-4 lg:p-8 h-full overflow-y-auto">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <p className="text-red-600 mb-2">Failed to load payments</p>
-            <p className="text-gray-600 text-sm">{error}</p>
-          </div>
-        </div>
+        <Alert
+          type="error"
+          title="Failed to Load Payments"
+          message={error}
+          onClose={() => window.location.reload()}
+        >
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </Alert>
       </div>
     )
   }
@@ -135,7 +197,7 @@ const Payments: React.FC = () => {
             <TouchButton
               variant="outline"
               size="md"
-              onClick={() => console.log('Import payments clicked')}
+              onClick={handleImportPayments}
             >
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
@@ -145,7 +207,7 @@ const Payments: React.FC = () => {
             <TouchButton
               variant="primary"
               size="md"
-              onClick={() => console.log('New Payment clicked')}
+              onClick={handleCreatePayment}
             >
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -302,9 +364,23 @@ const Payments: React.FC = () => {
                     <TouchButton
                       variant="primary"
                       size="sm"
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        showInfo('Match Payment', 'Payment matching functionality will be implemented soon.')
+                      }}
                     >
                       Match
+                    </TouchButton>
+                    <TouchButton
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setDeleteModal({ isOpen: true, payment: row })
+                      }}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      Delete
                     </TouchButton>
                   </div>
                 )
@@ -400,9 +476,23 @@ const Payments: React.FC = () => {
                     <Button
                       variant="primary"
                       size="sm"
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        showInfo('Match Payment', 'Payment matching functionality will be implemented soon.')
+                      }}
                     >
                       Match
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setDeleteModal({ isOpen: true, payment: row })
+                      }}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      Delete
                     </Button>
                   </div>
                 )
@@ -421,10 +511,38 @@ const Payments: React.FC = () => {
           />
         </div>
       )}
+
+      <ConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, payment: null })}
+        onConfirm={() => {
+          handleDeletePayment(deleteModal.payment)
+          setDeleteModal({ isOpen: false, payment: null })
+        }}
+        title="Delete Payment"
+        message={`Are you sure you want to delete this payment of ${deleteModal.payment?.amount} ${deleteModal.payment?.currency}? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
+      />
+
+      <PaymentImportModal
+        isOpen={importModal}
+        onClose={() => setImportModal(false)}
+        onImport={handlePaymentsImported}
+      />
+
+      <PaymentModal
+        isOpen={paymentModal}
+        onClose={() => setPaymentModal(false)}
+        onSave={handlePaymentCreated}
+      />
     </div>
   )
 }
 
 export default Payments
+
+
 
 

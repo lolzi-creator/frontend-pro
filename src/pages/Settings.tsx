@@ -1,9 +1,48 @@
 import React, { useState } from 'react'
+import { useToast } from '../contexts/ToastContext'
 import { Card, CardHeader, CardTitle, CardContent } from '../components/Card'
 import Button from '../components/Button'
+import Input from '../components/Input'
+import { Alert, LoadingSpinner } from '../components'
 
 const Settings: React.FC = () => {
+  const { showSuccess, showError, showInfo } = useToast()
   const [activeTab, setActiveTab] = useState('profile')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [formData, setFormData] = useState({
+    firstName: 'John',
+    lastName: 'Doe',
+    email: 'john.doe@example.com',
+    company: 'Acme Corp',
+    phone: '+41 44 123 45 67',
+    address: 'Bahnhofstrasse 1',
+    city: 'Zurich',
+    zipCode: '8001',
+    country: 'Switzerland'
+  })
+
+  const handleSave = async (section: string) => {
+    setLoading(true)
+    setError(null)
+    
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      showSuccess('Settings Saved', `${section} settings have been updated successfully.`)
+    } catch (err) {
+      setError('Failed to save settings. Please try again.')
+      showError('Save Failed', 'Failed to save settings. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
   return (
     <div className="p-8">
       {/* Page Header */}
@@ -19,6 +58,17 @@ const Settings: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {error && (
+        <div className="mb-6">
+          <Alert
+            type="error"
+            title="Error"
+            message={error}
+            onClose={() => setError(null)}
+          />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column - Settings Navigation */}
@@ -131,32 +181,27 @@ const Settings: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
-                    <input
-                      type="text"
-                      defaultValue="John"
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
-                    <input
-                      type="text"
-                      defaultValue="Doe"
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                  <input
-                    type="email"
-                    defaultValue="john@company.com"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  <Input
+                    label="First Name"
+                    value={formData.firstName}
+                    onChange={(e) => handleInputChange('firstName', e.target.value)}
+                    placeholder="Enter your first name"
+                  />
+                  <Input
+                    label="Last Name"
+                    value={formData.lastName}
+                    onChange={(e) => handleInputChange('lastName', e.target.value)}
+                    placeholder="Enter your last name"
                   />
                 </div>
+
+                <Input
+                  label="Email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  placeholder="Enter your email address"
+                />
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
@@ -168,7 +213,20 @@ const Settings: React.FC = () => {
                 </div>
 
                 <div className="flex justify-end">
-                  <Button variant="primary">Save Changes</Button>
+                  <Button 
+                    variant="primary" 
+                    onClick={() => handleSave('Profile')}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <div className="flex items-center">
+                        <LoadingSpinner size="sm" className="mr-2" />
+                        Saving...
+                      </div>
+                    ) : (
+                      'Save Changes'
+                    )}
+                  </Button>
                 </div>
               </div>
             </CardContent>
@@ -221,7 +279,20 @@ const Settings: React.FC = () => {
                 </div>
 
                 <div className="flex justify-end">
-                  <Button variant="primary">Save Changes</Button>
+                  <Button 
+                    variant="primary" 
+                    onClick={() => handleSave('Profile')}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <div className="flex items-center">
+                        <LoadingSpinner size="sm" className="mr-2" />
+                        Saving...
+                      </div>
+                    ) : (
+                      'Save Changes'
+                    )}
+                  </Button>
                 </div>
               </div>
             </CardContent>
@@ -443,3 +514,6 @@ const Settings: React.FC = () => {
 }
 
 export default Settings
+
+
+

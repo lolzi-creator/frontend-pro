@@ -1,10 +1,14 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useToast } from '../contexts/ToastContext'
 import Button from '../components/Button'
 import TouchButton from '../components/TouchButton'
 import DataTable from '../components/DataTable'
 import CompactMobileTable from '../components/CompactMobileTable'
 import AdvancedFilters from '../components/AdvancedFilters'
+import ConfirmationModal from '../components/ConfirmationModal'
+import QuoteModal from '../components/QuoteModal'
+import { TableSkeleton, Alert, LoadingSpinner } from '../components'
 
 // Define Quote interface inline
 interface Quote {
@@ -33,10 +37,16 @@ interface Quote {
 
 const Quotes: React.FC = () => {
   const navigate = useNavigate()
+  const { showSuccess, showError, showWarning, showInfo } = useToast()
   const [filters, setFilters] = useState<Record<string, any>>({})
   const [quotes, setQuotes] = useState<Quote[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; quote: any }>({
+    isOpen: false,
+    quote: null
+  })
+  const [quoteModal, setQuoteModal] = useState(false)
 
   // TODO: Replace with real API call when quotes API is available
   React.useEffect(() => {
@@ -61,6 +71,53 @@ const Quotes: React.FC = () => {
 
     fetchQuotes()
   }, [])
+
+  const handleDeleteQuote = async (quote: any) => {
+    try {
+      // Here you would call the API to delete the quote
+      // await apiClient.deleteQuote(quote.id)
+      console.log('Deleting quote:', quote.id)
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      // Remove from local state
+      setQuotes(prev => prev.filter(q => q.id !== quote.id))
+      showSuccess('Quote Deleted', `Quote #${quote.number} has been deleted successfully.`)
+    } catch (error) {
+      showError('Delete Failed', 'Failed to delete quote. Please try again.')
+    }
+  }
+
+  const handleStatusChange = async (quote: any, newStatus: string) => {
+    try {
+      // Here you would call the API to update the quote status
+      // await apiClient.updateQuoteStatus(quote.id, newStatus)
+      console.log('Updating quote status:', quote.id, newStatus)
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
+      // Update local state
+      setQuotes(prev => prev.map(q => 
+        q.id === quote.id ? { ...q, status: newStatus as any } : q
+      ))
+      showSuccess('Status Updated', `Quote #${quote.number} status updated to ${newStatus}.`)
+    } catch (error) {
+      showError('Update Failed', 'Failed to update quote status. Please try again.')
+    }
+  }
+
+  const handleCreateQuote = () => {
+    setQuoteModal(true)
+  }
+
+  const handleQuoteCreated = (quoteData: any) => {
+    console.log('Quote created:', quoteData)
+    // Add to local state
+    setQuotes(prev => [...prev, { ...quoteData, id: Date.now().toString() }])
+    showSuccess('Quote Created', 'Quote has been created successfully.')
+  }
 
   const getStatusColor = (status: Quote['status']) => {
     switch (status) {
@@ -119,12 +176,19 @@ const Quotes: React.FC = () => {
   if (loading) {
     return (
       <div className="p-4 lg:p-8 h-full overflow-y-auto">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading quotes...</p>
-          </div>
+        {/* Page Header Skeleton */}
+        <div className="mb-6">
+          <div className="h-8 bg-gray-200 rounded w-48 mb-2 animate-pulse"></div>
+          <div className="h-4 bg-gray-200 rounded w-96 animate-pulse"></div>
         </div>
+
+        {/* Filters Skeleton */}
+        <div className="mb-6">
+          <div className="h-12 bg-gray-200 rounded animate-pulse"></div>
+        </div>
+
+        {/* Table Skeleton */}
+        <TableSkeleton rows={5} columns={6} />
       </div>
     )
   }
@@ -132,17 +196,19 @@ const Quotes: React.FC = () => {
   if (error) {
     return (
       <div className="p-4 lg:p-8 h-full overflow-y-auto">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <p className="text-red-600 mb-2">Failed to load quotes</p>
-            <p className="text-gray-600 text-sm">{error}</p>
-          </div>
-        </div>
+        <Alert
+          type="error"
+          title="Failed to Load Quotes"
+          message={error}
+          onClose={() => window.location.reload()}
+        >
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </Alert>
       </div>
     )
   }
@@ -165,7 +231,7 @@ const Quotes: React.FC = () => {
             size="md"
             fullWidth
             className="sm:w-auto"
-            onClick={() => console.log('New Quote clicked')}
+            onClick={handleCreateQuote}
           >
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -314,9 +380,23 @@ const Quotes: React.FC = () => {
                     <TouchButton
                       variant="primary"
                       size="sm"
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        showInfo('Edit Quote', 'Edit functionality will be implemented soon.')
+                      }}
                     >
                       Edit
+                    </TouchButton>
+                    <TouchButton
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setDeleteModal({ isOpen: true, quote: row })
+                      }}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      Delete
                     </TouchButton>
                   </div>
                 )
@@ -403,9 +483,23 @@ const Quotes: React.FC = () => {
                     <Button
                       variant="primary"
                       size="sm"
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        showInfo('Edit Quote', 'Edit functionality will be implemented soon.')
+                      }}
                     >
                       Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setDeleteModal({ isOpen: true, quote: row })
+                      }}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      Delete
                     </Button>
                   </div>
                 )
@@ -424,11 +518,32 @@ const Quotes: React.FC = () => {
           />
         </div>
       )}
+
+      <ConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, quote: null })}
+        onConfirm={() => {
+          handleDeleteQuote(deleteModal.quote)
+          setDeleteModal({ isOpen: false, quote: null })
+        }}
+        title="Delete Quote"
+        message={`Are you sure you want to delete quote #${deleteModal.quote?.number}? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
+      />
+
+      <QuoteModal
+        isOpen={quoteModal}
+        onClose={() => setQuoteModal(false)}
+        onSave={handleQuoteCreated}
+      />
     </div>
   )
 }
 
 export default Quotes
+
 
 
 

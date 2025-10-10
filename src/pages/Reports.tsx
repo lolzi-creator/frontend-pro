@@ -1,8 +1,102 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
+import { useToast } from '../contexts/ToastContext'
 import { Card, CardHeader, CardTitle, CardContent } from '../components/Card'
 import Button from '../components/Button'
+import { CardSkeleton, Alert, LoadingSpinner } from '../components'
 
 const Reports: React.FC = () => {
+  const { showSuccess, showError, showInfo } = useToast()
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [reportsData, setReportsData] = useState<any>(null)
+
+  // Simulate loading reports data
+  useEffect(() => {
+    const fetchReportsData = async () => {
+      setLoading(true)
+      try {
+        // Simulate API call
+        await new Promise(resolve => setTimeout(resolve, 1500))
+        
+        // Mock data
+        setReportsData({
+          totalRevenue: 125000,
+          totalInvoices: 45,
+          paidInvoices: 38,
+          overdueInvoices: 7,
+          averageInvoiceValue: 2777.78,
+          monthlyGrowth: 12.5
+        })
+        setError(null)
+      } catch (err) {
+        setError('Failed to load reports data')
+        setReportsData(null)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchReportsData()
+  }, [])
+
+  const handleExportReport = () => {
+    showInfo('Export Report', 'Report export functionality will be implemented soon.')
+  }
+
+  const handleRefreshData = () => {
+    setLoading(true)
+    // Simulate refresh
+    setTimeout(() => {
+      setLoading(false)
+      showSuccess('Data Refreshed', 'Reports data has been updated successfully.')
+    }, 1000)
+  }
+
+  if (loading) {
+    return (
+      <div className="p-8">
+        {/* Page Header Skeleton */}
+        <div className="mb-8">
+          <div className="h-8 bg-gray-200 rounded w-48 mb-2 animate-pulse"></div>
+          <div className="h-4 bg-gray-200 rounded w-96 animate-pulse"></div>
+        </div>
+
+        {/* Report Cards Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <CardSkeleton key={index} showActions={false} lines={3} />
+          ))}
+        </div>
+
+        {/* Charts Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <CardSkeleton showImage={false} lines={4} />
+          <CardSkeleton showImage={false} lines={4} />
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-8">
+        <Alert
+          type="error"
+          title="Failed to Load Reports"
+          message={error}
+          onClose={() => window.location.reload()}
+        >
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </Alert>
+      </div>
+    )
+  }
+
   return (
     <div className="p-8">
       {/* Page Header */}
@@ -16,12 +110,20 @@ const Reports: React.FC = () => {
               Generate and analyze business reports
             </p>
           </div>
-          <Button variant="primary">
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            Export Report
-          </Button>
+          <div className="flex space-x-3">
+            <Button variant="outline" onClick={handleRefreshData}>
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Refresh
+            </Button>
+            <Button variant="primary" onClick={handleExportReport}>
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Export Report
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -39,10 +141,18 @@ const Reports: React.FC = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <p className="text-gray-600 mb-4">Monthly revenue analysis with trends and forecasts</p>
+            <div className="mb-4">
+              <p className="text-gray-600 mb-2">Monthly revenue analysis with trends and forecasts</p>
+              <div className="text-2xl font-bold text-gray-900">
+                CHF {reportsData?.totalRevenue?.toLocaleString() || '0'}
+              </div>
+              <div className="text-sm text-green-600">
+                +{reportsData?.monthlyGrowth || 0}% from last month
+              </div>
+            </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500">Last updated: Nov 15, 2024</span>
-              <Button variant="outline" size="sm">Generate</Button>
+              <span className="text-sm text-gray-500">Last updated: {new Date().toLocaleDateString()}</span>
+              <Button variant="outline" size="sm" onClick={() => showInfo('Generate Report', 'Revenue report generation will be implemented soon.')}>Generate</Button>
             </div>
           </CardContent>
         </Card>
@@ -79,10 +189,22 @@ const Reports: React.FC = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <p className="text-gray-600 mb-4">Payment times, overdue analysis, and collection rates</p>
+            <div className="mb-4">
+              <p className="text-gray-600 mb-2">Payment times, overdue analysis, and collection rates</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-lg font-bold text-gray-900">{reportsData?.totalInvoices || 0}</div>
+                  <div className="text-xs text-gray-500">Total Invoices</div>
+                </div>
+                <div>
+                  <div className="text-lg font-bold text-green-600">{reportsData?.paidInvoices || 0}</div>
+                  <div className="text-xs text-gray-500">Paid</div>
+                </div>
+              </div>
+            </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500">Last updated: Nov 10, 2024</span>
-              <Button variant="outline" size="sm">Generate</Button>
+              <span className="text-sm text-gray-500">Last updated: {new Date().toLocaleDateString()}</span>
+              <Button variant="outline" size="sm" onClick={() => showInfo('Generate Report', 'Invoice performance report generation will be implemented soon.')}>Generate</Button>
             </div>
           </CardContent>
         </Card>

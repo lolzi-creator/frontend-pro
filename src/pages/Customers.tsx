@@ -1,33 +1,81 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useToast } from '../contexts/ToastContext'
 import { useCustomers } from '../hooks/useCustomers'
 import Button from '../components/Button'
 import TouchButton from '../components/TouchButton'
 import DataTable from '../components/DataTable'
 import CompactMobileTable from '../components/CompactMobileTable'
 import AdvancedFilters from '../components/AdvancedFilters'
+import ConfirmationModal from '../components/ConfirmationModal'
+import CustomerModal from '../components/CustomerModal'
+import { TableSkeleton, Alert, LoadingSpinner } from '../components'
 
 const Customers: React.FC = () => {
   const navigate = useNavigate()
+  const { showSuccess, showError, showWarning, showInfo } = useToast()
   const [filters, setFilters] = useState<Record<string, any>>({})
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; customer: any }>({
+    isOpen: false,
+    customer: null
+  })
+  const [customerModal, setCustomerModal] = useState(false)
 
-  const { customers, loading, error, totalPages, totalCount } = useCustomers({
+  const { customers, loading, error, totalPages, totalCount, refetch } = useCustomers({
     page: currentPage,
     limit: pageSize,
     ...filters,
   })
 
+  const handleDeleteCustomer = async (customer: any) => {
+    try {
+      // Here you would call the API to delete the customer
+      // await apiClient.deleteCustomer(customer.id)
+      console.log('Deleting customer:', customer.id)
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      refetch()
+      showSuccess('Customer Deleted', `${customer.name} has been deleted successfully.`)
+    } catch (error) {
+      showError('Delete Failed', 'Failed to delete customer. Please try again.')
+    }
+  }
+
+  const handleCreateCustomer = () => {
+    setCustomerModal(true)
+  }
+
+  const handleCustomerCreated = (customerData: any) => {
+    console.log('Customer created:', customerData)
+    // Add to local state
+    refetch()
+    showSuccess('Customer Created', 'Customer has been created successfully.')
+  }
+
+  const handleEditCustomer = (customer: any) => {
+    showInfo('Edit Customer', `Edit functionality for ${customer.name} will be implemented soon.`)
+  }
+
   if (loading) {
     return (
       <div className="p-4 lg:p-8 h-full overflow-y-auto">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading customers...</p>
-          </div>
+        {/* Page Header Skeleton */}
+        <div className="mb-6">
+          <div className="h-8 bg-gray-200 rounded w-48 mb-2 animate-pulse"></div>
+          <div className="h-4 bg-gray-200 rounded w-96 animate-pulse"></div>
         </div>
+
+        {/* Filters Skeleton */}
+        <div className="mb-6">
+          <div className="h-12 bg-gray-200 rounded animate-pulse"></div>
+        </div>
+
+        {/* Table Skeleton */}
+        <TableSkeleton rows={5} columns={5} />
       </div>
     )
   }
@@ -35,17 +83,19 @@ const Customers: React.FC = () => {
   if (error) {
     return (
       <div className="p-4 lg:p-8 h-full overflow-y-auto">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <p className="text-red-600 mb-2">Failed to load customers</p>
-            <p className="text-gray-600 text-sm">{error}</p>
-          </div>
-        </div>
+        <Alert
+          type="error"
+          title="Failed to Load Customers"
+          message={error}
+          onClose={() => refetch()}
+        >
+          <button
+            onClick={() => refetch()}
+            className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </Alert>
       </div>
     )
   }
@@ -68,7 +118,7 @@ const Customers: React.FC = () => {
             size="md"
             fullWidth
             className="sm:w-auto"
-            onClick={() => console.log('New Customer clicked')}
+            onClick={handleCreateCustomer}
           >
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -212,9 +262,23 @@ const Customers: React.FC = () => {
                     <TouchButton
                       variant="primary"
                       size="sm"
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleEditCustomer(row)
+                      }}
                     >
                       Edit
+                    </TouchButton>
+                    <TouchButton
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setDeleteModal({ isOpen: true, customer: row })
+                      }}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      Delete
                     </TouchButton>
                   </div>
                 )
@@ -307,9 +371,23 @@ const Customers: React.FC = () => {
                     <Button
                       variant="primary"
                       size="sm"
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleEditCustomer(row)
+                      }}
                     >
                       Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setDeleteModal({ isOpen: true, customer: row })
+                      }}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      Delete
                     </Button>
                   </div>
                 )
@@ -328,11 +406,31 @@ const Customers: React.FC = () => {
           />
         </div>
       )}
+      <ConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, customer: null })}
+        onConfirm={() => {
+          handleDeleteCustomer(deleteModal.customer)
+          setDeleteModal({ isOpen: false, customer: null })
+        }}
+        title="Delete Customer"
+        message={`Are you sure you want to delete ${deleteModal.customer?.name}? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
+      />
+
+      <CustomerModal
+        isOpen={customerModal}
+        onClose={() => setCustomerModal(false)}
+        onSave={handleCustomerCreated}
+      />
     </div>
   )
 }
 
 export default Customers
+
 
 
 

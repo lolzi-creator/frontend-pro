@@ -1,19 +1,27 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useToast } from '../contexts/ToastContext'
 import Button from '../components/Button'
 import TouchButton from '../components/TouchButton'
 import DataTable from '../components/DataTable'
 import CompactMobileTable from '../components/CompactMobileTable'
 import AdvancedFilters from '../components/AdvancedFilters'
 import InvoiceModal from '../components/InvoiceModal'
+import ConfirmationModal from '../components/ConfirmationModal'
+import { TableSkeleton, Alert, LoadingSpinner } from '../components'
 import { useInvoices } from '../hooks/useInvoices'
 
 const Invoices: React.FC = () => {
   const navigate = useNavigate()
+  const { showSuccess, showError, showWarning } = useToast()
   const [filters, setFilters] = useState<Record<string, any>>({})
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false)
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; invoice: any }>({
+    isOpen: false,
+    invoice: null
+  })
 
   const { invoices, loading, error, totalCount, refetch } = useInvoices({
     page: currentPage,
@@ -23,9 +31,40 @@ const Invoices: React.FC = () => {
 
   const handleInvoiceCreated = (invoiceData: any) => {
     console.log('Invoice created:', invoiceData)
-    // Refresh the invoices list
     refetch()
-    // You could also show a success message here
+    showSuccess('Invoice Created!', `Invoice #${invoiceData.invoiceNumber || 'New'} has been created successfully.`)
+  }
+
+  const handleDeleteInvoice = async (invoice: any) => {
+    try {
+      // Here you would call the API to delete the invoice
+      // await apiClient.deleteInvoice(invoice.id)
+      console.log('Deleting invoice:', invoice.id)
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      refetch()
+      showSuccess('Invoice Deleted', `Invoice #${invoice.number} has been deleted successfully.`)
+    } catch (error) {
+      showError('Delete Failed', 'Failed to delete invoice. Please try again.')
+    }
+  }
+
+  const handleStatusChange = async (invoice: any, newStatus: string) => {
+    try {
+      // Here you would call the API to update the invoice status
+      // await apiClient.updateInvoiceStatus(invoice.id, newStatus)
+      console.log('Updating invoice status:', invoice.id, newStatus)
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
+      refetch()
+      showSuccess('Status Updated', `Invoice #${invoice.number} status updated to ${newStatus}.`)
+    } catch (error) {
+      showError('Update Failed', 'Failed to update invoice status. Please try again.')
+    }
   }
 
   const getStatusColor = (status: string) => {
@@ -85,12 +124,19 @@ const Invoices: React.FC = () => {
   if (loading) {
     return (
       <div className="p-4 lg:p-8 h-full overflow-y-auto">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading invoices...</p>
-          </div>
+        {/* Page Header Skeleton */}
+        <div className="mb-6">
+          <div className="h-8 bg-gray-200 rounded w-48 mb-2 animate-pulse"></div>
+          <div className="h-4 bg-gray-200 rounded w-96 animate-pulse"></div>
         </div>
+
+        {/* Filters Skeleton */}
+        <div className="mb-6">
+          <div className="h-12 bg-gray-200 rounded animate-pulse"></div>
+        </div>
+
+        {/* Table Skeleton */}
+        <TableSkeleton rows={5} columns={6} />
       </div>
     )
   }
@@ -98,23 +144,19 @@ const Invoices: React.FC = () => {
   if (error) {
     return (
       <div className="p-4 lg:p-8 h-full overflow-y-auto">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <p className="text-red-600 mb-2">Error loading invoices</p>
-            <p className="text-gray-600 text-sm">{error}</p>
-            <button
-              onClick={() => refetch()}
-              className="mt-4 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
-            >
-              Try Again
-            </button>
-          </div>
-        </div>
+        <Alert
+          type="error"
+          title="Failed to Load Invoices"
+          message={error}
+          onClose={() => refetch()}
+        >
+          <button
+            onClick={() => refetch()}
+            className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </Alert>
       </div>
     )
   }
@@ -264,9 +306,24 @@ const Invoices: React.FC = () => {
                   <TouchButton
                     variant="primary"
                     size="sm"
-                    onClick={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      // Handle edit - you could open a modal or navigate to edit page
+                      showInfo('Edit Invoice', 'Edit functionality will be implemented soon.')
+                    }}
                   >
                     Edit
+                  </TouchButton>
+                  <TouchButton
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setDeleteModal({ isOpen: true, invoice: row })
+                    }}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    Delete
                   </TouchButton>
                 </div>
               )
@@ -351,9 +408,23 @@ const Invoices: React.FC = () => {
                   <Button
                     variant="primary"
                     size="sm"
-                    onClick={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      showInfo('Edit Invoice', 'Edit functionality will be implemented soon.')
+                    }}
                   >
                     Edit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setDeleteModal({ isOpen: true, invoice: row })
+                    }}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    Delete
                   </Button>
                 </div>
               )
@@ -377,6 +448,20 @@ const Invoices: React.FC = () => {
         isOpen={isInvoiceModalOpen}
         onClose={() => setIsInvoiceModalOpen(false)}
         onSave={handleInvoiceCreated}
+      />
+
+      <ConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, invoice: null })}
+        onConfirm={() => {
+          handleDeleteInvoice(deleteModal.invoice)
+          setDeleteModal({ isOpen: false, invoice: null })
+        }}
+        title="Delete Invoice"
+        message={`Are you sure you want to delete invoice #${deleteModal.invoice?.number}? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
       />
     </div>
   )

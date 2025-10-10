@@ -1,5 +1,6 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { ToastProvider } from './contexts/ToastContext'
 import Layout from './components/layout/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
@@ -14,10 +15,12 @@ import Payments from './pages/Payments'
 import PaymentDetail from './pages/PaymentDetail'
 import Reports from './pages/Reports'
 import Settings from './pages/Settings'
+import ComponentDemo from './pages/ComponentDemo'
 
 function App() {
   return (
-    <Router>
+    <ToastProvider>
+      <Router>
       <Routes>
         {/* Public routes */}
         <Route path="/login" element={<Login />} />
@@ -28,11 +31,11 @@ function App() {
             <Layout><Dashboard /></Layout>
           </ProtectedRoute>
         } />
-        <Route path="/dashboard" element={
-          <ProtectedRoute>
-            <Layout><Dashboard /></Layout>
-          </ProtectedRoute>
-        } />
+            <Route path="/dashboard" element={
+              <ProtectedRoute>
+                <Layout><Dashboard /></Layout>
+              </ProtectedRoute>
+            } />
         <Route path="/invoices" element={
           <ProtectedRoute>
             <Layout><Invoices /></Layout>
@@ -83,11 +86,17 @@ function App() {
             <Layout><Settings /></Layout>
           </ProtectedRoute>
         } />
+        <Route path="/components" element={
+          <ProtectedRoute>
+            <Layout><ComponentDemo /></Layout>
+          </ProtectedRoute>
+        } />
         
         {/* Catch all route - redirect to login */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
-    </Router>
+      </Router>
+    </ToastProvider>
   )
 }
 
