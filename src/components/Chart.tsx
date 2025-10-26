@@ -3,7 +3,7 @@ import React from 'react'
 interface ChartProps {
   title?: string
   subtitle?: string
-  children: React.ReactNode
+  children?: React.ReactNode
   className?: string
   loading?: boolean
   error?: string
@@ -79,3 +79,4 @@ const Chart: React.FC<ChartProps> = ({
 }
 
 export default Chart
+

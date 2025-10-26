@@ -53,3 +53,4 @@ export interface DashboardData {
   topCustomers: any[]
   widgets: DashboardWidget[]
 }
+

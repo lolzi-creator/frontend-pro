@@ -164,11 +164,25 @@ export const apiClient = {
   async healthCheck() {
     const response = await api.get('/health')
     return response.data
-  }
+  },
+
+  // PDF Generation
+  async downloadInvoicePDF(id: string) {
+    const response = await api.get(`/invoices/${id}/pdf`, {
+      responseType: 'blob'
+    })
+    return response.data
+  },
+
+  // Send Email/Reminder
+  async sendInvoiceReminder(id: string, level: number = 1) {
+    const response = await api.post(`/invoices/${id}/reminder`, { level })
+    return response.data
+  },
+
 }
 
 export default api
-
 
 
 

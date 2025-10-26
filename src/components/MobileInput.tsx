@@ -1,6 +1,6 @@
 import React, { forwardRef } from 'react'
 
-interface MobileInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+interface MobileInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
   label?: string
   error?: string
   helperText?: string

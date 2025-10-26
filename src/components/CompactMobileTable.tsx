@@ -317,3 +317,4 @@ function CompactMobileTable<T extends Record<string, any>>({
 }
 
 export default CompactMobileTable
+

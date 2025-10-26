@@ -19,8 +19,8 @@ const PaymentPatternsChart: React.FC<PaymentPatternsChartProps> = ({
   className = '' 
 }) => {
   const chartData = data.map((item, index) => ({
-    x: item.method,
-    y: item.amount,
+    label: item.method,
+    value: item.amount,
     color: [
       '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'
     ][index % 6]

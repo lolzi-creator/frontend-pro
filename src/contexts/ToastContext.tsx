@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react'
+import React, { createContext, useContext, useState, useCallback } from 'react'
+import type { ReactNode } from 'react'
 import ToastContainer from '../components/ToastContainer'
 
 interface ToastData {
@@ -7,6 +8,7 @@ interface ToastData {
   title: string
   message?: string
   duration?: number
+  onClose?: (id: string) => void
   action?: {
     label: string
     onClick: () => void
@@ -113,7 +115,13 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
+      <ToastContainer 
+        toasts={toasts.map(toast => ({
+          ...toast,
+          onClose: removeToast
+        }))} 
+        onRemoveToast={removeToast} 
+      />
     </ToastContext.Provider>
   )
 }

@@ -96,7 +96,7 @@ const MobileSelect = forwardRef<HTMLSelectElement, MobileSelectProps>(({
         : [...currentValue, optionValue]
       onChange?.({
         target: { value: newValue }
-      } as React.ChangeEvent<HTMLSelectElement>)
+      } as unknown as React.ChangeEvent<HTMLSelectElement>)
     } else {
       onChange?.({
         target: { value: optionValue }
@@ -111,7 +111,7 @@ const MobileSelect = forwardRef<HTMLSelectElement, MobileSelectProps>(({
     if (multiple) {
       onChange?.({
         target: { value: [] }
-      } as React.ChangeEvent<HTMLSelectElement>)
+      } as unknown as React.ChangeEvent<HTMLSelectElement>)
     } else {
       onChange?.({
         target: { value: '' }

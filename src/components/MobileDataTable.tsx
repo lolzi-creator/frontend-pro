@@ -9,6 +9,7 @@ interface Column<T> {
   render?: (value: any, row: T) => React.ReactNode
   mobileRender?: (row: T) => React.ReactNode
   priority?: 'high' | 'medium' | 'low' // For mobile display priority
+  width?: string | number // Column width for styling
 }
 
 interface MobileDataTableProps<T> {

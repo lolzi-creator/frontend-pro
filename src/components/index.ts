@@ -55,6 +55,11 @@ export { default as StatsCard } from './StatsCard'
 export { default as RecentActivity } from './RecentActivity'
 export { default as QuickActions } from './QuickActions'
 export { default as OverdueAlerts } from './OverdueAlerts'
+export { default as KPIMetric } from './KPIMetric'
+export { default as DashboardWidget } from './DashboardWidget'
+export { default as RevenueForecastChart } from './RevenueForecastChart'
+export { default as PaymentPatternsChart } from './PaymentPatternsChart'
+export { default as ExportModal } from './ExportModal'
 
 // Filter Components
 export { default as AdvancedFilters } from './AdvancedFilters'

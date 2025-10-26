@@ -6,6 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Invoices from './pages/Invoices'
+import CreateInvoice from './pages/CreateInvoice'
 import InvoiceDetail from './pages/InvoiceDetail'
 import Quotes from './pages/Quotes'
 import QuoteDetail from './pages/QuoteDetail'
@@ -39,6 +40,11 @@ function App() {
         <Route path="/invoices" element={
           <ProtectedRoute>
             <Layout><Invoices /></Layout>
+          </ProtectedRoute>
+        } />
+        <Route path="/invoices/create" element={
+          <ProtectedRoute>
+            <Layout><CreateInvoice /></Layout>
           </ProtectedRoute>
         } />
         <Route path="/invoices/:id" element={

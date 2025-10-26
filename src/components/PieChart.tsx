@@ -15,6 +15,7 @@ interface PieChartProps {
   loading?: boolean
   error?: string
   size?: number
+  height?: number
   showLegend?: boolean
   showValues?: boolean
   showPercentages?: boolean
@@ -173,3 +174,4 @@ const PieChart: React.FC<PieChartProps> = ({
 }
 
 export default PieChart
+

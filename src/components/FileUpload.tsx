@@ -2,13 +2,15 @@ import React, { useCallback, useState } from 'react'
 import { Upload, X, File, Image, FileText, CheckCircle } from 'lucide-react'
 
 interface FileUploadProps {
-  onFileSelect: (files: File[]) => void
+  onFileSelect?: (files: File[]) => void
+  onFilesSelected?: (files: File[]) => void // Alias for compatibility
   accept?: string
   multiple?: boolean
   maxSize?: number // in MB
   maxFiles?: number
   className?: string
   disabled?: boolean
+  children?: React.ReactNode
 }
 
 interface FileWithPreview extends File {
@@ -18,13 +20,17 @@ interface FileWithPreview extends File {
 
 const FileUpload: React.FC<FileUploadProps> = ({
   onFileSelect,
+  onFilesSelected,
   accept = '*/*',
   multiple = false,
   maxSize = 10, // 10MB default
   maxFiles = 5,
   className = '',
-  disabled = false
+  disabled = false,
+  children
 }) => {
+  // Use onFilesSelected as alias if provided
+  const handleFileSelect = onFilesSelected || onFileSelect || (() => {})
   const [files, setFiles] = useState<FileWithPreview[]>([])
   const [dragActive, setDragActive] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -116,7 +122,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
     if (validFiles.length > 0) {
       const updatedFiles = multiple ? [...files, ...validFiles] : validFiles
       setFiles(updatedFiles)
-      onFileSelect(updatedFiles)
+      handleFileSelect(updatedFiles)
     }
   }, [files, maxFiles, maxSize, accept, multiple, onFileSelect])
 
@@ -152,8 +158,8 @@ const FileUpload: React.FC<FileUploadProps> = ({
   const removeFile = useCallback((fileId: string) => {
     const updatedFiles = files.filter(file => file.id !== fileId)
     setFiles(updatedFiles)
-    onFileSelect(updatedFiles)
-  }, [files, onFileSelect])
+    handleFileSelect(updatedFiles)
+  }, [files, handleFileSelect])
 
   const clearAll = useCallback(() => {
     // Revoke object URLs to prevent memory leaks
@@ -163,9 +169,9 @@ const FileUpload: React.FC<FileUploadProps> = ({
       }
     })
     setFiles([])
-    onFileSelect([])
+    handleFileSelect([])
     setError(null)
-  }, [files, onFileSelect])
+  }, [files, handleFileSelect])
 
   return (
     <div className={`w-full ${className}`}>
@@ -268,3 +274,4 @@ const FileUpload: React.FC<FileUploadProps> = ({
 }
 
 export default FileUpload
+

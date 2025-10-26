@@ -1,5 +1,5 @@
 import React from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 interface SidebarProps {
   className?: string
@@ -7,6 +7,14 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
   const location = useLocation()
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken')
+    localStorage.removeItem('user')
+    localStorage.removeItem('company')
+    navigate('/login')
+  }
   
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: 'dashboard' },
@@ -125,7 +133,10 @@ const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
               <p className="text-xs text-gray-500 truncate">john@company.com</p>
             </div>
           </div>
-          <button className="flex items-center w-full px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-colors">
+          <button 
+            onClick={handleLogout}
+            className="flex items-center w-full px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-colors"
+          >
             <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
@@ -138,6 +149,8 @@ const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
 }
 
 export default Sidebar
+
+
 
 
 
