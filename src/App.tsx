@@ -12,6 +12,7 @@ import Quotes from './pages/Quotes'
 import CreateQuote from './pages/CreateQuote'
 import QuoteDetail from './pages/QuoteDetail'
 import AcceptQuote from './pages/AcceptQuote'
+import AcceptInvitation from './pages/AcceptInvitation'
 import Customers from './pages/Customers'
 import CreateCustomer from './pages/CreateCustomer'
 import CustomerDetail from './pages/CustomerDetail'
@@ -33,6 +34,7 @@ function App() {
         {/* Public routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/quotes/accept/:token" element={<AcceptQuote />} />
+        <Route path="/invitations/accept/:token" element={<AcceptInvitation />} />
         
         {/* Protected routes */}
         <Route path="/" element={

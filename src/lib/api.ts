@@ -295,6 +295,89 @@ export const apiClient = {
     return response.data
   },
 
+  // Users & Invitations
+  async getUsers() {
+    const response = await api.get('/users')
+    return response.data
+  },
+
+  async inviteUser(email: string, name: string, role: 'ADMIN' | 'EMPLOYEE' = 'EMPLOYEE') {
+    const response = await api.post('/users/invite', { email, name, role })
+    return response.data
+  },
+
+  async updateUserRole(userId: string, role: 'ADMIN' | 'EMPLOYEE') {
+    const response = await api.patch(`/users/${userId}/role`, { role })
+    return response.data
+  },
+
+  async deactivateUser(userId: string) {
+    const response = await api.patch(`/users/${userId}/deactivate`)
+    return response.data
+  },
+
+  async reactivateUser(userId: string) {
+    const response = await api.patch(`/users/${userId}/reactivate`)
+    return response.data
+  },
+
+  // Invitations (public for acceptance)
+  async getInvitationByToken(token: string) {
+    const publicApi = axios.create({
+      baseURL: API_BASE_URL,
+      timeout: 10000,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+    const response = await publicApi.get(`/invitations/${token}`)
+    return response.data
+  },
+
+  async acceptInvitation(token: string, password: string, name?: string) {
+    const publicApi = axios.create({
+      baseURL: API_BASE_URL,
+      timeout: 10000,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+    const response = await publicApi.post(`/invitations/${token}/accept`, { password, name })
+    return response.data
+  },
+
+  // Invitations (admin only)
+  async getInvitations() {
+    const response = await api.get('/invitations')
+    return response.data
+  },
+
+  async cancelInvitation(invitationId: string) {
+    const response = await api.delete(`/invitations/${invitationId}`)
+    return response.data
+  },
+
+  // Permissions (admin only)
+  async getPermissions() {
+    const response = await api.get('/permissions')
+    return response.data
+  },
+
+  async getRolePermissions(role: 'ADMIN' | 'EMPLOYEE') {
+    const response = await api.get(`/permissions/roles/${role}`)
+    return response.data
+  },
+
+  async updateRolePermissions(role: 'ADMIN' | 'EMPLOYEE', permissions: Record<string, boolean>) {
+    const response = await api.put(`/permissions/roles/${role}`, { permissions })
+    return response.data
+  },
+
+  async resetRolePermissions(role: 'ADMIN' | 'EMPLOYEE') {
+    const response = await api.post(`/permissions/roles/${role}/reset`)
+    return response.data
+  },
+
   async deleteQuote(id: string) {
     const response = await api.delete(`/quotes/${id}`)
     return response.data
@@ -370,6 +453,28 @@ export const apiClient = {
       { startDate, endDate },
       { responseType: 'blob' } // Important for binary data
     )
+    return response.data
+  },
+
+  // Company
+  async getCompany() {
+    const response = await api.get('/company')
+    return response.data
+  },
+
+  async uploadLogo(file: File) {
+    const formData = new FormData()
+    formData.append('logo', file)
+    const response = await api.post('/company/logo', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+    return response.data
+  },
+
+  async deleteLogo() {
+    const response = await api.delete('/company/logo')
     return response.data
   },
 
