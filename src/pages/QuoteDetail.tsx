@@ -466,12 +466,57 @@ const QuoteDetail: React.FC = () => {
                     {Math.max(0, Math.ceil((new Date(quote.expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))} days
                   </span>
                 </div>
-                {quote.acceptanceLink && (
-                  <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                    <p className="text-xs text-gray-600 mb-2">Acceptance Link:</p>
-                    <p className="text-xs font-mono text-blue-800 break-all">{quote.acceptanceLink}</p>
-                  </div>
-                )}
+                <div className="mt-4">
+                  {quote.acceptanceLink && !quote.acceptanceLink.startsWith('undefined') ? (
+                    <div className="p-3 bg-blue-50 rounded-lg">
+                      <p className="text-xs text-gray-600 mb-2">Acceptance Link:</p>
+                      <p className="text-xs font-mono text-blue-800 break-all">{quote.acceptanceLink}</p>
+                      <button
+                        onClick={() => {
+                          if (quote.acceptanceLink) {
+                            navigator.clipboard.writeText(quote.acceptanceLink)
+                            showToast({ type: 'success', title: 'Link copied to clipboard' })
+                          }
+                        }}
+                        className="mt-2 text-xs text-blue-600 hover:text-blue-800"
+                      >
+                        Copy Link
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                      <p className="text-xs text-yellow-800 mb-2">Acceptance link is invalid</p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          try {
+                            setActionLoading('regenerate-link')
+                            const response = await apiClient.regenerateQuoteAcceptanceLink(quote.id)
+                            if (response.success) {
+                              showToast({ type: 'success', title: 'Acceptance link regenerated' })
+                              // Reload quote data
+                              const quoteResponse = await apiClient.getQuote(quote.id)
+                              if (quoteResponse.success) {
+                                setQuote(quoteResponse.data.quote)
+                              }
+                            } else {
+                              showToast({ type: 'error', title: 'Failed to regenerate link' })
+                            }
+                          } catch (error) {
+                            console.error('Error regenerating link:', error)
+                            showToast({ type: 'error', title: 'Failed to regenerate link' })
+                          } finally {
+                            setActionLoading(null)
+                          }
+                        }}
+                        disabled={actionLoading !== null}
+                      >
+                        {actionLoading === 'regenerate-link' ? 'Regenerating...' : 'Regenerate Link'}
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>

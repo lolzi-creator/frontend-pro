@@ -290,6 +290,11 @@ export const apiClient = {
     return response.data
   },
 
+  async regenerateQuoteAcceptanceLink(quoteId: string) {
+    const response = await api.post(`/quotes/${quoteId}/regenerate-link`)
+    return response.data
+  },
+
   async deleteQuote(id: string) {
     const response = await api.delete(`/quotes/${id}`)
     return response.data
