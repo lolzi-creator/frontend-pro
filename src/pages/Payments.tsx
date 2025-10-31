@@ -10,23 +10,29 @@ import ConfirmationModal from '../components/ConfirmationModal'
 import PaymentImportModal from '../components/PaymentImportModal'
 import PaymentModal from '../components/PaymentModal'
 import { TableSkeleton, Alert, LoadingSpinner } from '../components'
+import MatchPaymentModal from '../components/MatchPaymentModal'
+import { apiClient } from '../lib/api'
 
-// Define Payment interface inline
+// Define Payment interface inline - matches backend API response
 interface Payment {
   id: string
   invoiceId?: string
-  amount: number
-  currency: string
-  paymentMethod: string
+  companyId: string
+  amount: number // in Rappen (cents)
+  valueDate: string | Date
   reference?: string
+  description?: string
+  confidence?: string
+  isMatched?: boolean
+  importBatch?: string
+  rawData?: any
   notes?: string
-  paidAt: string
-  createdAt: string
-  updatedAt: string
+  createdAt: string | Date
+  updatedAt: string | Date
   invoice?: {
     id: string
     number: string
-    customer: {
+    customer?: {
       name: string
     }
   }
@@ -45,21 +51,31 @@ const Payments: React.FC = () => {
   })
   const [importModal, setImportModal] = useState(false)
   const [paymentModal, setPaymentModal] = useState(false)
+  const [matchModal, setMatchModal] = useState<{ isOpen: boolean; payment: Payment | null }>({ isOpen: false, payment: null })
 
-  // TODO: Replace with real API call when payments API is available
   React.useEffect(() => {
     const fetchPayments = async () => {
       setLoading(true)
       try {
-        // This would be replaced with actual API call
-        // const response = await apiClient.getPayments()
-        // setPayments(response.data)
+        const response = await apiClient.getPayments()
+        console.log('[Payments] API response:', response)
         
-        // For now, show empty state
-        setPayments([])
-        setError(null)
-      } catch (err) {
-        setError('Failed to load payments')
+        if (response?.success && response?.data) {
+          // Handle paginated response
+          const paymentList = response.data.payments || response.data || []
+          setPayments(paymentList)
+          setError(null)
+        } else if (Array.isArray(response)) {
+          // Handle direct array response
+          setPayments(response)
+          setError(null)
+        } else {
+          setPayments([])
+          setError(null)
+        }
+      } catch (err: any) {
+        console.error('[Payments] Error fetching payments:', err)
+        setError(err?.response?.data?.error || 'Failed to load payments')
         setPayments([])
       } finally {
         setLoading(false)
@@ -101,13 +117,46 @@ const Payments: React.FC = () => {
     showSuccess('Payment Added', 'Payment has been added successfully.')
   }
 
-  const handlePaymentsImported = (importData: any) => {
+  const handlePaymentsImported = async (importData: any) => {
     console.log('Payments imported:', importData)
-    showSuccess('Payments Imported', 'Payments have been imported successfully.')
+    showSuccess('Payments Imported', `Successfully imported ${importData?.data?.payments?.length || 0} payments.`)
+    
+    // Refresh payments list
+    try {
+      const response = await apiClient.getPayments()
+      if (response?.success && response?.data) {
+        const paymentList = response.data.payments || response.data || []
+        setPayments(paymentList)
+      } else if (Array.isArray(response)) {
+        setPayments(response)
+      }
+    } catch (err) {
+      console.error('Error refreshing payments:', err)
+    }
   }
 
   const handleEditPayment = (payment: any) => {
     showInfo('Edit Payment', `Edit functionality for payment ${payment.id} will be implemented soon.`)
+  }
+
+  const openMatchPayment = (payment: Payment) => {
+    setMatchModal({ isOpen: true, payment })
+  }
+
+  const handleMatched = async () => {
+    // After matching, refresh list
+    try {
+      const response = await apiClient.getPayments()
+      if (response?.success && response?.data) {
+        const paymentList = response.data.payments || response.data || []
+        setPayments(paymentList)
+      } else if (Array.isArray(response)) {
+        setPayments(response)
+      }
+      showSuccess('Payment matched', 'Payment linked to invoice successfully.')
+    } catch (e) {
+      console.error('Error refreshing payments after match:', e)
+    }
   }
 
   const getPaymentMethodIcon = (method: string) => {
@@ -222,24 +271,33 @@ const Payments: React.FC = () => {
       <AdvancedFilters
         filters={[
           {
-            key: 'paymentMethod',
-            label: 'Payment Method',
+            key: 'confidence',
+            label: 'Match Status',
             type: 'select',
             options: [
-              { value: 'bank_transfer', label: 'Bank Transfer' },
-              { value: 'credit_card', label: 'Credit Card' },
-              { value: 'cash', label: 'Cash' },
-              { value: 'sepa', label: 'SEPA' },
+              { value: 'HIGH', label: 'High Confidence' },
+              { value: 'MEDIUM', label: 'Medium Confidence' },
+              { value: 'LOW', label: 'Low Confidence' },
+              { value: 'MANUAL', label: 'Manual' },
+            ]
+          },
+          {
+            key: 'isMatched',
+            label: 'Matched',
+            type: 'select',
+            options: [
+              { value: 'true', label: 'Matched' },
+              { value: 'false', label: 'Unmatched' },
             ]
           },
           {
             key: 'amount',
             label: 'Amount',
             type: 'number',
-            placeholder: 'Filter by amount'
+            placeholder: 'Filter by amount (CHF)'
           },
           {
-            key: 'paidAt',
+            key: 'valueDate',
             label: 'Payment Date',
             type: 'dateRange'
           },
@@ -294,18 +352,18 @@ const Payments: React.FC = () => {
                 label: 'Payment',
                 sortable: true,
                 priority: 'high',
-                render: (value, row) => (
+                render: (value, row: Payment) => (
                   <div>
-                    <span className="font-medium text-gray-900">{row.currency} {value?.toFixed(2) || '0.00'}</span>
-                    <div className="text-sm text-gray-500">{row.paymentMethod}</div>
+                    <span className="font-medium text-gray-900">CHF {((value || 0) / 100).toFixed(2)}</span>
+                    <div className="text-sm text-gray-500">{row.description || row.confidence || 'Payment'}</div>
                   </div>
                 ),
-                mobileRender: (row) => (
+                mobileRender: (row: Payment) => (
                   <div>
-                    <span className="font-medium text-gray-900">{row.currency} {row.amount?.toFixed(2) || '0.00'}</span>
-                    <div className="text-sm text-gray-500 flex items-center">
-                      {getPaymentMethodIcon(row.paymentMethod)}
-                      <span className="ml-1 capitalize">{row.paymentMethod.replace('_', ' ')}</span>
+                    <span className="font-medium text-gray-900">CHF {((row.amount || 0) / 100).toFixed(2)}</span>
+                    <div className="text-sm text-gray-500">
+                      {row.isMatched ? 'Matched' : 'Unmatched'}
+                      {row.confidence && ` • ${row.confidence}`}
                     </div>
                   </div>
                 )
@@ -320,7 +378,7 @@ const Payments: React.FC = () => {
                     {row.invoice ? (
                       <>
                         <span className="font-medium text-gray-900">{row.invoice.number}</span>
-                        <div className="text-sm text-gray-500">{row.invoice.customer.name}</div>
+                        <div className="text-sm text-gray-500">{row.invoice.customer?.name || 'N/A'}</div>
                       </>
                     ) : (
                       <span className="text-gray-500">Unmatched</span>
@@ -329,7 +387,7 @@ const Payments: React.FC = () => {
                 )
               },
               {
-                key: 'paidAt',
+                key: 'valueDate',
                 label: 'Date',
                 sortable: true,
                 priority: 'medium',
@@ -366,7 +424,7 @@ const Payments: React.FC = () => {
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation()
-                        showInfo('Match Payment', 'Payment matching functionality will be implemented soon.')
+                        openMatchPayment(row as any)
                       }}
                     >
                       Match
@@ -410,10 +468,10 @@ const Payments: React.FC = () => {
                 key: 'amount',
                 label: 'Amount',
                 sortable: true,
-                render: (value, row) => (
+                render: (value, row: Payment) => (
                   <div className="flex items-center">
-                    {getPaymentMethodIcon(row.paymentMethod)}
-                    <span className="ml-2 font-medium text-gray-900">{row.currency} {value?.toFixed(2) || '0.00'}</span>
+                    <span className="font-medium text-gray-900">CHF {((value || 0) / 100).toFixed(2)}</span>
+                    {row.isMatched && <span className="ml-2 text-green-600 text-xs">Matched</span>}
                   </div>
                 )
               },
@@ -426,7 +484,7 @@ const Payments: React.FC = () => {
                     {row.invoice ? (
                       <>
                         <span className="font-medium text-gray-900">{row.invoice.number}</span>
-                        <div className="text-sm text-gray-500">{row.invoice.customer.name}</div>
+                        <div className="text-sm text-gray-500">{row.invoice.customer?.name || 'N/A'}</div>
                       </>
                     ) : (
                       <span className="text-gray-500">Unmatched</span>
@@ -435,15 +493,18 @@ const Payments: React.FC = () => {
                 )
               },
               {
-                key: 'paymentMethod',
-                label: 'Method',
+                key: 'confidence',
+                label: 'Status',
                 sortable: true,
-                render: (value) => (
-                  <span className="capitalize text-gray-600">{value.replace('_', ' ')}</span>
+                render: (value, row: Payment) => (
+                  <span className="text-gray-600">
+                    {row.isMatched ? 'Matched' : 'Unmatched'}
+                    {value && ` (${value})`}
+                  </span>
                 )
               },
               {
-                key: 'paidAt',
+                key: 'valueDate',
                 label: 'Date',
                 sortable: true,
                 render: (value) => (
@@ -478,7 +539,7 @@ const Payments: React.FC = () => {
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation()
-                        showInfo('Match Payment', 'Payment matching functionality will be implemented soon.')
+                        openMatchPayment(row as any)
                       }}
                     >
                       Match
@@ -537,11 +598,19 @@ const Payments: React.FC = () => {
         onClose={() => setPaymentModal(false)}
         onSave={handlePaymentCreated}
       />
+
+      <MatchPaymentModal
+        isOpen={matchModal.isOpen}
+        onClose={() => setMatchModal({ isOpen: false, payment: null })}
+        payment={matchModal.payment}
+        onMatched={handleMatched}
+      />
     </div>
   )
 }
 
 export default Payments
+
 
 
 

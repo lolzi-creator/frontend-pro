@@ -30,9 +30,11 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      // Token expired, invalid, or forbidden
       localStorage.removeItem('authToken')
+      localStorage.removeItem('user')
+      localStorage.removeItem('company')
       window.location.href = '/login'
     }
     return Promise.reject(error)
@@ -154,6 +156,37 @@ export const apiClient = {
     return response.data
   },
 
+  async matchPayment(paymentId: string, invoiceId: string | null) {
+    const response = await api.patch(`/payments/${paymentId}/match`, { invoiceId })
+    return response.data
+  },
+
+  async getPaymentSuggestions(paymentId: string) {
+    const response = await api.get(`/payments/${paymentId}/suggestions`)
+    return response.data
+  },
+
+  // Payment Imports
+  async importPayments(payments: any[]) {
+    const response = await api.post('/payments/import', { payments })
+    return response.data
+  },
+
+  async importPaymentsCSV(csvData: string) {
+    const response = await api.post('/payments/import/csv', { csvData })
+    return response.data
+  },
+
+  async importPaymentsMT940(mt940Data: string) {
+    const response = await api.post('/payments/import/mt940', { mt940Data })
+    return response.data
+  },
+
+  async importPaymentsCAMT053(camt053Data: string) {
+    const response = await api.post('/payments/import/camt053', { camt053Data })
+    return response.data
+  },
+
   // Dashboard
   async getDashboardStats() {
     const response = await api.get('/invoices/stats')
@@ -180,9 +213,165 @@ export const apiClient = {
     return response.data
   },
 
+  // Quote API calls
+  async getQuotes(params?: {
+    page?: number
+    limit?: number
+    status?: string
+    search?: string
+    customerId?: string
+    startDate?: string
+    endDate?: string
+  }) {
+    const queryParams = new URLSearchParams()
+    if (params?.page) queryParams.append('page', params.page.toString())
+    if (params?.limit) queryParams.append('limit', params.limit.toString())
+    if (params?.status) queryParams.append('status', params.status)
+    if (params?.search) queryParams.append('search', params.search)
+    if (params?.customerId) queryParams.append('customerId', params.customerId)
+    if (params?.startDate) queryParams.append('startDate', params.startDate)
+    if (params?.endDate) queryParams.append('endDate', params.endDate)
+    
+    const response = await api.get(`/quotes?${queryParams.toString()}`)
+    return response.data
+  },
+
+  async getQuote(id: string) {
+    const response = await api.get(`/quotes/${id}`)
+    return response.data
+  },
+
+  async createQuote(quoteData: any) {
+    const response = await api.post('/quotes', quoteData)
+    return response.data
+  },
+
+  async updateQuote(id: string, quoteData: any) {
+    const response = await api.put(`/quotes/${id}`, quoteData)
+    return response.data
+  },
+
+  async updateQuoteStatus(id: string, status: string) {
+    const response = await api.patch(`/quotes/${id}/status`, { status })
+    return response.data
+  },
+
+  async sendQuoteEmail(id: string) {
+    const response = await api.post(`/quotes/${id}/send`)
+    return response.data
+  },
+
+  // Public quote acceptance endpoints (no auth required)
+  async getQuoteByToken(token: string) {
+    // Use a separate axios instance without auth interceptor for public endpoints
+    const publicApi = axios.create({
+      baseURL: API_BASE_URL,
+      timeout: 10000,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+    const response = await publicApi.get(`/quotes/token/${token}`)
+    return response.data
+  },
+
+  async acceptQuote(token: string, customerEmail?: string) {
+    // Use a separate axios instance without auth interceptor for public endpoints
+    const publicApi = axios.create({
+      baseURL: API_BASE_URL,
+      timeout: 10000,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+    const response = await publicApi.post(`/quotes/accept/${token}`, {
+      customerEmail
+    })
+    return response.data
+  },
+
+  async deleteQuote(id: string) {
+    const response = await api.delete(`/quotes/${id}`)
+    return response.data
+  },
+
+  // Expenses
+  async getExpenses(params?: {
+    page?: number
+    limit?: number
+    category?: string
+    status?: string
+    startDate?: string
+    endDate?: string
+    search?: string
+    sortBy?: string
+    sortOrder?: 'asc' | 'desc'
+  }) {
+    const response = await api.get('/expenses', { params })
+    return response.data
+  },
+
+  async getExpense(id: string) {
+    const response = await api.get(`/expenses/${id}`)
+    return response.data
+  },
+
+  async createExpense(expenseData: any) {
+    const response = await api.post('/expenses', expenseData)
+    return response.data
+  },
+
+  async updateExpense(id: string, expenseData: any) {
+    const response = await api.put(`/expenses/${id}`, expenseData)
+    return response.data
+  },
+
+  async deleteExpense(id: string) {
+    const response = await api.delete(`/expenses/${id}`)
+    return response.data
+  },
+
+  async uploadExpenseFiles(id: string, files: File[]) {
+    const formData = new FormData()
+    files.forEach(file => {
+      formData.append('files', file)
+    })
+    const response = await api.post(`/expenses/${id}/files`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+    return response.data
+  },
+
+  async deleteExpenseFile(expenseId: string, fileId: string) {
+    const response = await api.delete(`/expenses/${expenseId}/files/${fileId}`)
+    return response.data
+  },
+
+  async getExpenseCategories() {
+    const response = await api.get('/expenses/categories')
+    return response.data
+  },
+
+  async getExpenseStats(period?: 'month' | 'year') {
+    const response = await api.get('/expenses/stats', { params: { period } })
+    return response.data
+  },
+
+  async exportExpenses(startDate: string, endDate: string) {
+    const response = await api.post(
+      '/expenses/export',
+      { startDate, endDate },
+      { responseType: 'blob' } // Important for binary data
+    )
+    return response.data
+  },
+
 }
 
 export default api
+
 
 
 

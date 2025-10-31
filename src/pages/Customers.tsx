@@ -8,7 +8,6 @@ import DataTable from '../components/DataTable'
 import CompactMobileTable from '../components/CompactMobileTable'
 import AdvancedFilters from '../components/AdvancedFilters'
 import ConfirmationModal from '../components/ConfirmationModal'
-import CustomerModal from '../components/CustomerModal'
 import { TableSkeleton, Alert, LoadingSpinner } from '../components'
 
 const Customers: React.FC = () => {
@@ -21,7 +20,6 @@ const Customers: React.FC = () => {
     isOpen: false,
     customer: null
   })
-  const [customerModal, setCustomerModal] = useState(false)
 
   const { customers, loading, error, totalPages, totalCount, refetch } = useCustomers({
     page: currentPage,
@@ -46,15 +44,9 @@ const Customers: React.FC = () => {
   }
 
   const handleCreateCustomer = () => {
-    setCustomerModal(true)
+    navigate('/customers/create')
   }
 
-  const handleCustomerCreated = (customerData: any) => {
-    console.log('Customer created:', customerData)
-    // Add to local state
-    refetch()
-    showSuccess('Customer Created', 'Customer has been created successfully.')
-  }
 
   const handleEditCustomer = (customer: any) => {
     showInfo('Edit Customer', `Edit functionality for ${customer.name} will be implemented soon.`)
@@ -420,16 +412,12 @@ const Customers: React.FC = () => {
         type="danger"
       />
 
-      <CustomerModal
-        isOpen={customerModal}
-        onClose={() => setCustomerModal(false)}
-        onSave={handleCustomerCreated}
-      />
     </div>
   )
 }
 
 export default Customers
+
 
 
 

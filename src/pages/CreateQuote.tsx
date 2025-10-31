@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { apiClient } from '../lib/api'
 import { useToast } from '../contexts/ToastContext'
 import Card from '../components/Card'
@@ -13,7 +13,7 @@ interface Customer {
   company?: string
 }
 
-interface InvoiceItem {
+interface QuoteItem {
   description: string
   quantity: number
   unit: string
@@ -22,29 +22,34 @@ interface InvoiceItem {
   vatRate: number
 }
 
-interface NewInvoice {
+interface NewQuote {
   customerId: string
   date: string
-  dueDate: string
+  expiryDate: string
   discountCode: string
   discountAmount: number
-  items: InvoiceItem[]
+  internalNotes: string
+  items: QuoteItem[]
 }
 
-const CreateInvoice: React.FC = () => {
+const CreateQuote: React.FC = () => {
   const navigate = useNavigate()
+  const { id } = useParams()
   const { showToast } = useToast()
   
+  const isEditMode = !!id
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [originalQuote, setOriginalQuote] = useState<NewQuote | null>(null)
   
-  const [newInvoice, setNewInvoice] = useState<NewInvoice>({
+  const [newQuote, setNewQuote] = useState<NewQuote>({
     customerId: '',
     date: new Date().toISOString().split('T')[0],
-    dueDate: '',
+    expiryDate: '',
     discountCode: '',
     discountAmount: 0,
+    internalNotes: '',
     items: [{
       description: '',
       quantity: 1,
@@ -66,11 +71,13 @@ const CreateInvoice: React.FC = () => {
 
   useEffect(() => {
     loadCustomers()
-  }, [])
+    if (isEditMode && id) {
+      loadQuote(id)
+    }
+  }, [id, isEditMode])
 
   const loadCustomers = async () => {
     try {
-      setLoading(true)
       const response = await apiClient.getCustomers()
       if (response.success) {
         setCustomers(response.data.customers || [])
@@ -78,6 +85,52 @@ const CreateInvoice: React.FC = () => {
     } catch (error) {
       console.error('Error loading customers:', error)
       showToast({ type: 'error', title: 'Failed to load customers' })
+    }
+  }
+
+  const loadQuote = async (quoteId: string) => {
+    try {
+      setLoading(true)
+      const response = await apiClient.getQuote(quoteId)
+      if (response.success && response.data.quote) {
+        const quote = response.data.quote
+        
+        // Check if quote is editable (only DRAFT status)
+        if (quote.status !== 'DRAFT') {
+          showToast({ 
+            type: 'error', 
+            title: 'Cannot Edit Quote',
+            message: 'Only draft quotes can be edited.'
+          })
+          navigate('/quotes')
+          return
+        }
+
+        // Populate form with existing quote data
+        const quoteData = {
+          customerId: quote.customerId,
+          date: quote.date instanceof Date ? quote.date.toISOString().split('T')[0] : quote.date.split('T')[0],
+          expiryDate: quote.expiryDate instanceof Date ? quote.expiryDate.toISOString().split('T')[0] : quote.expiryDate.split('T')[0],
+          discountCode: quote.discountCode || '',
+          discountAmount: quote.discountAmount || 0,
+          internalNotes: quote.internalNotes || '',
+          items: quote.items.map((item: any) => ({
+            description: item.description,
+            quantity: item.quantity,
+            unit: item.unit,
+            unitPrice: item.unitPrice,
+            discount: item.discount,
+            vatRate: item.vatRate
+          }))
+        }
+        
+        setNewQuote(quoteData)
+        setOriginalQuote(quoteData)
+      }
+    } catch (error) {
+      console.error('Error loading quote:', error)
+      showToast({ type: 'error', title: 'Failed to load quote' })
+      navigate('/quotes')
     } finally {
       setLoading(false)
     }
@@ -85,44 +138,41 @@ const CreateInvoice: React.FC = () => {
 
   const handleCustomerChange = (customerId: string) => {
     const customer = customers.find(c => c.id === customerId)
-    let dueDate = ''
+    let expiryDate = ''
     
     if (customer) {
-      const invoiceDate = new Date(newInvoice.date)
-      invoiceDate.setDate(invoiceDate.getDate() + customer.paymentTerms)
-      dueDate = invoiceDate.toISOString().split('T')[0]
+      const quoteDate = new Date(newQuote.date)
+      quoteDate.setDate(quoteDate.getDate() + 30) // Default 30 days validity
+      expiryDate = quoteDate.toISOString().split('T')[0]
     }
     
-    setNewInvoice({
-      ...newInvoice,
+    setNewQuote({
+      ...newQuote,
       customerId,
-      dueDate
+      expiryDate
     })
   }
 
   const handleDateChange = (date: string) => {
-    let dueDate = newInvoice.dueDate
+    let expiryDate = newQuote.expiryDate
     
-    if (newInvoice.customerId) {
-      const customer = customers.find(c => c.id === newInvoice.customerId)
-      if (customer) {
-        const invoiceDate = new Date(date)
-        invoiceDate.setDate(invoiceDate.getDate() + customer.paymentTerms)
-        dueDate = invoiceDate.toISOString().split('T')[0]
-      }
+    if (newQuote.customerId) {
+      const quoteDate = new Date(date)
+      quoteDate.setDate(quoteDate.getDate() + 30)
+      expiryDate = quoteDate.toISOString().split('T')[0]
     }
     
-    setNewInvoice({
-      ...newInvoice,
+    setNewQuote({
+      ...newQuote,
       date,
-      dueDate
+      expiryDate
     })
   }
 
-  const addInvoiceItem = () => {
-    setNewInvoice({
-      ...newInvoice,
-      items: [...newInvoice.items, {
+  const addQuoteItem = () => {
+    setNewQuote({
+      ...newQuote,
+      items: [...newQuote.items, {
         description: '',
         quantity: 1,
         unit: 'Stück',
@@ -133,20 +183,20 @@ const CreateInvoice: React.FC = () => {
     })
   }
 
-  const removeInvoiceItem = (index: number) => {
-    if (newInvoice.items.length > 1) {
-      const newItems = newInvoice.items.filter((_, i) => i !== index)
-      setNewInvoice({ ...newInvoice, items: newItems })
+  const removeQuoteItem = (index: number) => {
+    if (newQuote.items.length > 1) {
+      const newItems = newQuote.items.filter((_, i) => i !== index)
+      setNewQuote({ ...newQuote, items: newItems })
     }
   }
 
-  const updateInvoiceItem = (index: number, field: keyof InvoiceItem, value: any) => {
-    const newItems = [...newInvoice.items]
+  const updateQuoteItem = (index: number, field: keyof QuoteItem, value: any) => {
+    const newItems = [...newQuote.items]
     newItems[index] = { ...newItems[index], [field]: value }
-    setNewInvoice({ ...newInvoice, items: newItems })
+    setNewQuote({ ...newQuote, items: newItems })
   }
 
-  const calculateItemTotal = (item: InvoiceItem) => {
+  const calculateItemTotal = (item: QuoteItem) => {
     const subtotal = item.quantity * item.unitPrice
     const discounted = subtotal * (1 - item.discount / 100)
     const withVat = discounted * (1 + item.vatRate / 100)
@@ -154,53 +204,95 @@ const CreateInvoice: React.FC = () => {
   }
 
   const calculateTotals = () => {
-    const subtotal = newInvoice.items.reduce((sum, item) => {
+    const subtotal = newQuote.items.reduce((sum, item) => {
       const itemSubtotal = item.quantity * item.unitPrice
       const discounted = itemSubtotal * (1 - item.discount / 100)
       return sum + discounted
     }, 0)
 
-    const vatAmount = newInvoice.items.reduce((sum, item) => {
+    const vatAmount = newQuote.items.reduce((sum, item) => {
       const itemSubtotal = item.quantity * item.unitPrice
       const discounted = itemSubtotal * (1 - item.discount / 100)
       const vat = discounted * (item.vatRate / 100)
       return sum + vat
     }, 0)
 
-    const total = subtotal + vatAmount - newInvoice.discountAmount
+    const total = subtotal + vatAmount - newQuote.discountAmount
 
     return { subtotal, vatAmount, total }
+  }
+
+  const deepEqual = (obj1: any, obj2: any): boolean => {
+    if (obj1 === obj2) return true
+    if (obj1 == null || obj2 == null) return false
+    if (typeof obj1 !== 'object' || typeof obj2 !== 'object') return false
+
+    const keys1 = Object.keys(obj1)
+    const keys2 = Object.keys(obj2)
+
+    if (keys1.length !== keys2.length) return false
+
+    for (let key of keys1) {
+      if (Array.isArray(obj1[key]) && Array.isArray(obj2[key])) {
+        if (obj1[key].length !== obj2[key].length) return false
+        for (let i = 0; i < obj1[key].length; i++) {
+          if (!deepEqual(obj1[key][i], obj2[key][i])) return false
+        }
+      } else if (typeof obj1[key] === 'object' && typeof obj2[key] === 'object') {
+        if (!deepEqual(obj1[key], obj2[key])) return false
+      } else if (obj1[key] !== obj2[key]) {
+        return false
+      }
+    }
+
+    return true
+  }
+
+  const hasChanges = (): boolean => {
+    if (!isEditMode || !originalQuote) return true
+    
+    return !deepEqual(newQuote, originalQuote)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Validation
-    if (!newInvoice.customerId) {
+    if (!newQuote.customerId) {
       showToast({ type: 'error', title: 'Please select a customer' })
       return
     }
 
-    if (newInvoice.items.some(item => !item.description.trim())) {
+    if (newQuote.items.some(item => !item.description.trim())) {
       showToast({ type: 'error', title: 'Please fill in all item descriptions' })
       return
     }
 
-    if (newInvoice.items.some(item => item.unitPrice <= 0)) {
+    if (newQuote.items.some(item => item.unitPrice <= 0)) {
       showToast({ type: 'error', title: 'Please enter valid unit prices' })
+      return
+    }
+
+    // Check if anything has changed in edit mode
+    if (isEditMode && !hasChanges()) {
+      showToast({ 
+        type: 'info', 
+        title: 'No changes made',
+        message: 'No changes were made to the quote.'
+      })
       return
     }
 
     try {
       setSubmitting(true)
       
-      const invoiceData = {
-        customerId: newInvoice.customerId,
-        date: newInvoice.date,
-        dueDate: newInvoice.dueDate,
-        discountCode: newInvoice.discountCode || undefined,
-        discountAmount: newInvoice.discountAmount || 0,
-        items: newInvoice.items.map(item => ({
+      const quoteData = {
+        customerId: newQuote.customerId,
+        date: newQuote.date,
+        expiryDate: newQuote.expiryDate,
+        discountCode: newQuote.discountCode || undefined,
+        discountAmount: newQuote.discountAmount || 0,
+        internalNotes: newQuote.internalNotes || undefined,
+        items: newQuote.items.map(item => ({
           description: item.description.trim(),
           quantity: item.quantity,
           unit: item.unit,
@@ -210,23 +302,27 @@ const CreateInvoice: React.FC = () => {
         }))
       }
 
-      const response = await apiClient.createInvoice(invoiceData)
+      let response
+      if (isEditMode && id) {
+        response = await apiClient.updateQuote(id, quoteData)
+      } else {
+        response = await apiClient.createQuote(quoteData)
+      }
       
       if (response.success) {
         showToast({ 
           type: 'success', 
-          title: 'Invoice created successfully!',
-          message: `Invoice number: ${response.data.invoice.number}`
+          title: isEditMode ? 'Quote updated successfully!' : 'Quote created successfully!',
+          message: `Quote number: ${response.data.quote.number}`
         })
         
-        // Navigate to the new invoice detail page
-        navigate(`/invoices/${response.data.invoice.id}`)
+        navigate(`/quotes/${response.data.quote.id}`)
       } else {
-        showToast({ type: 'error', title: 'Failed to create invoice' })
+        showToast({ type: 'error', title: isEditMode ? 'Failed to update quote' : 'Failed to create quote' })
       }
     } catch (error) {
-      console.error('Error creating invoice:', error)
-      showToast({ type: 'error', title: 'Failed to create invoice' })
+      console.error(`Error ${isEditMode ? 'updating' : 'creating'} quote:`, error)
+      showToast({ type: 'error', title: isEditMode ? 'Failed to update quote' : 'Failed to create quote' })
     } finally {
       setSubmitting(false)
     }
@@ -249,15 +345,15 @@ const CreateInvoice: React.FC = () => {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Create New Invoice</h1>
-          <p className="mt-2 text-gray-600">Fill in the details below to create a new invoice</p>
+          <h1 className="text-3xl font-bold text-gray-900">{isEditMode ? 'Edit Quote' : 'Create New Quote'}</h1>
+          <p className="mt-2 text-gray-600">{isEditMode ? 'Update the quote details below' : 'Fill in the details below to create a new quote'}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Basic Invoice Info */}
+          {/* Basic Quote Info */}
           <Card>
             <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-medium text-gray-900">Invoice Details</h2>
+              <h2 className="text-lg font-medium text-gray-900">Quote Details</h2>
             </div>
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -266,7 +362,7 @@ const CreateInvoice: React.FC = () => {
                     Customer *
                   </label>
                   <select
-                    value={newInvoice.customerId}
+                    value={newQuote.customerId}
                     onChange={(e) => handleCustomerChange(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
@@ -282,11 +378,11 @@ const CreateInvoice: React.FC = () => {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Invoice Date *
+                    Quote Date *
                   </label>
                   <input
                     type="date"
-                    value={newInvoice.date}
+                    value={newQuote.date}
                     onChange={(e) => handleDateChange(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
@@ -295,18 +391,17 @@ const CreateInvoice: React.FC = () => {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Due Date
+                    Expiry Date *
                   </label>
                   <input
                     type="date"
-                    value={newInvoice.dueDate}
-                    onChange={(e) => setNewInvoice({...newInvoice, dueDate: e.target.value})}
+                    value={newQuote.expiryDate}
+                    onChange={(e) => setNewQuote({...newQuote, expiryDate: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
                   />
                   <div className="text-xs text-gray-500 mt-1">
-                    {newInvoice.customerId && customers.find(c => c.id === newInvoice.customerId) 
-                      ? `Auto-calculated from customer payment terms`
-                      : 'Will be auto-calculated when customer is selected'}
+                    Quote is valid until this date
                   </div>
                 </div>
               </div>
@@ -326,8 +421,8 @@ const CreateInvoice: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    value={newInvoice.discountCode}
-                    onChange={(e) => setNewInvoice({...newInvoice, discountCode: e.target.value})}
+                    value={newQuote.discountCode}
+                    onChange={(e) => setNewQuote({...newQuote, discountCode: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="SUMMER2025"
                   />
@@ -338,8 +433,8 @@ const CreateInvoice: React.FC = () => {
                   </label>
                   <input
                     type="number"
-                    value={newInvoice.discountAmount}
-                    onChange={(e) => setNewInvoice({...newInvoice, discountAmount: parseFloat(e.target.value) || 0})}
+                    value={newQuote.discountAmount}
+                    onChange={(e) => setNewQuote({...newQuote, discountAmount: parseFloat(e.target.value) || 0})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     step="0.01"
                     min="0"
@@ -349,15 +444,31 @@ const CreateInvoice: React.FC = () => {
             </div>
           </Card>
 
-          {/* Invoice Items */}
+          {/* Internal Notes */}
+          <Card>
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-lg font-medium text-gray-900">Internal Notes</h2>
+            </div>
+            <div className="p-6">
+              <textarea
+                value={newQuote.internalNotes}
+                onChange={(e) => setNewQuote({...newQuote, internalNotes: e.target.value})}
+                placeholder="Add any internal notes about this quote..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y min-h-[100px]"
+                rows={4}
+              />
+            </div>
+          </Card>
+
+          {/* Quote Items */}
           <Card>
             <div className="px-6 py-4 border-b border-gray-200">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-medium text-gray-900">Invoice Items</h2>
+                <h2 className="text-lg font-medium text-gray-900">Quote Items</h2>
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={addInvoiceItem}
+                  onClick={addQuoteItem}
                   className="text-sm"
                 >
                   ➕ Add Item
@@ -366,16 +477,16 @@ const CreateInvoice: React.FC = () => {
             </div>
             <div className="p-6">
               <div className="space-y-6">
-                {newInvoice.items.map((item, index) => (
+                {newQuote.items.map((item, index) => (
                   <div key={index} className="border border-gray-200 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-4">
                       <span className="font-medium text-sm text-gray-700">
                         Item {index + 1}
                       </span>
-                      {newInvoice.items.length > 1 && (
+                      {newQuote.items.length > 1 && (
                         <button
                           type="button"
-                          onClick={() => removeInvoiceItem(index)}
+                          onClick={() => removeQuoteItem(index)}
                           className="text-red-600 hover:text-red-800 text-sm font-medium"
                         >
                           ❌ Remove
@@ -391,7 +502,7 @@ const CreateInvoice: React.FC = () => {
                         <input
                           type="text"
                           value={item.description}
-                          onChange={(e) => updateInvoiceItem(index, 'description', e.target.value)}
+                          onChange={(e) => updateQuoteItem(index, 'description', e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-blue-500"
                           placeholder="Service or product description"
                           required
@@ -405,7 +516,7 @@ const CreateInvoice: React.FC = () => {
                         <input
                           type="number"
                           value={item.quantity}
-                          onChange={(e) => updateInvoiceItem(index, 'quantity', parseFloat(e.target.value) || 1)}
+                          onChange={(e) => updateQuoteItem(index, 'quantity', parseFloat(e.target.value) || 1)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-blue-500"
                           min="0.001"
                           step="0.001"
@@ -419,7 +530,7 @@ const CreateInvoice: React.FC = () => {
                         </label>
                         <select
                           value={item.unit}
-                          onChange={(e) => updateInvoiceItem(index, 'unit', e.target.value)}
+                          onChange={(e) => updateQuoteItem(index, 'unit', e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-blue-500"
                         >
                           {units.map(unit => (
@@ -435,7 +546,7 @@ const CreateInvoice: React.FC = () => {
                         <input
                           type="number"
                           value={item.unitPrice}
-                          onChange={(e) => updateInvoiceItem(index, 'unitPrice', parseFloat(e.target.value) || 0)}
+                          onChange={(e) => updateQuoteItem(index, 'unitPrice', parseFloat(e.target.value) || 0)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-blue-500"
                           step="0.01"
                           min="0"
@@ -450,7 +561,7 @@ const CreateInvoice: React.FC = () => {
                         <input
                           type="number"
                           value={item.discount}
-                          onChange={(e) => updateInvoiceItem(index, 'discount', parseFloat(e.target.value) || 0)}
+                          onChange={(e) => updateQuoteItem(index, 'discount', parseFloat(e.target.value) || 0)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-blue-500"
                           step="0.1"
                           min="0"
@@ -464,7 +575,7 @@ const CreateInvoice: React.FC = () => {
                         </label>
                         <select
                           value={item.vatRate}
-                          onChange={(e) => updateInvoiceItem(index, 'vatRate', parseFloat(e.target.value))}
+                          onChange={(e) => updateQuoteItem(index, 'vatRate', parseFloat(e.target.value))}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-blue-500"
                         >
                           {vatRates.map(rate => (
@@ -489,7 +600,7 @@ const CreateInvoice: React.FC = () => {
           {/* Totals Summary */}
           <Card>
             <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-medium text-gray-900">Invoice Summary</h2>
+              <h2 className="text-lg font-medium text-gray-900">Quote Summary</h2>
             </div>
             <div className="p-6">
               <div className="max-w-md ml-auto">
@@ -502,10 +613,10 @@ const CreateInvoice: React.FC = () => {
                     <span className="text-gray-600">VAT:</span>
                     <span>CHF {vatAmount.toFixed(2)}</span>
                   </div>
-                  {newInvoice.discountAmount > 0 && (
+                  {newQuote.discountAmount > 0 && (
                     <div className="flex justify-between text-red-600">
                       <span>Discount:</span>
-                      <span>-CHF {newInvoice.discountAmount.toFixed(2)}</span>
+                      <span>-CHF {newQuote.discountAmount.toFixed(2)}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-lg font-semibold border-t pt-2">
@@ -522,7 +633,7 @@ const CreateInvoice: React.FC = () => {
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate('/invoices')}
+              onClick={() => navigate('/quotes')}
             >
               Cancel
             </Button>
@@ -531,7 +642,7 @@ const CreateInvoice: React.FC = () => {
               variant="primary"
               disabled={submitting}
             >
-              {submitting ? 'Creating Invoice...' : 'Create Invoice'}
+              {submitting ? (isEditMode ? 'Updating Quote...' : 'Creating Quote...') : (isEditMode ? 'Update Quote' : 'Create Quote')}
             </Button>
           </div>
         </form>
@@ -540,8 +651,7 @@ const CreateInvoice: React.FC = () => {
   )
 }
 
-export default CreateInvoice
-
+export default CreateQuote
 
 
 

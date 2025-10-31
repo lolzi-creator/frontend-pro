@@ -10,6 +10,7 @@ import InvoiceModal from '../components/InvoiceModal'
 import ConfirmationModal from '../components/ConfirmationModal'
 import { TableSkeleton, Alert, LoadingSpinner } from '../components'
 import { useInvoices } from '../hooks/useInvoices'
+import { apiClient } from '../lib/api'
 
 const Invoices: React.FC = () => {
   const navigate = useNavigate()
@@ -36,17 +37,21 @@ const Invoices: React.FC = () => {
   }
 
   const handleDeleteInvoice = async (invoice: any) => {
+    if (!invoice?.id) {
+      showError('Delete Failed', 'Invalid invoice data')
+      return
+    }
+
     try {
-      // Here you would call the API to delete the invoice
-      // await apiClient.deleteInvoice(invoice.id)
-      console.log('Deleting invoice:', invoice.id)
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      refetch()
-      showSuccess('Invoice Deleted', `Invoice #${invoice.number} has been deleted successfully.`)
+      const response = await apiClient.deleteInvoice(invoice.id)
+      if (response.success) {
+        refetch()
+        showSuccess('Invoice Deleted', `Invoice #${invoice.number} has been deleted successfully.`)
+      } else {
+        showError('Delete Failed', response.error || 'Failed to delete invoice. Please try again.')
+      }
     } catch (error) {
+      console.error('Error deleting invoice:', error)
       showError('Delete Failed', 'Failed to delete invoice. Please try again.')
     }
   }
@@ -468,3 +473,4 @@ const Invoices: React.FC = () => {
 }
 
 export default Invoices
+

@@ -16,6 +16,11 @@ const InvoiceDetail: React.FC = () => {
   const [notes, setNotes] = useState('')
   const [isEditingNotes, setIsEditingNotes] = useState(false)
   const [notesLoading, setNotesLoading] = useState(false)
+  const [reminderEligibility, setReminderEligibility] = useState<{
+    canSend: boolean
+    reason?: string
+    daysUntilEligible?: number
+  } | null>(null)
 
   // Fetch invoice data
   useEffect(() => {
@@ -28,8 +33,60 @@ const InvoiceDetail: React.FC = () => {
         console.log('Invoice API response:', response)
         if (response.success) {
           console.log('Invoice data:', response.data)
-          setInvoice(response.data.invoice)
-          setNotes(response.data.invoice.internalNotes || '')
+          const invoiceData = response.data.invoice
+          setInvoice(invoiceData)
+          setNotes(invoiceData.internalNotes || '')
+          
+          // Calculate reminder eligibility
+          if (invoiceData.dueDate && invoiceData.status !== 'CANCELLED') {
+            const dueDate = new Date(invoiceData.dueDate)
+            // Set time to start of day for accurate day calculation
+            dueDate.setHours(0, 0, 0, 0)
+            const today = new Date()
+            today.setHours(0, 0, 0, 0)
+            const daysSinceDue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
+            const totalAmount = invoiceData.total || 0
+            const paidAmount = invoiceData.paidAmount || 0
+            const isFullyPaid = paidAmount >= totalAmount
+            
+            if (isFullyPaid) {
+              setReminderEligibility({
+                canSend: false,
+                reason: 'Invoice is fully paid'
+              })
+            } else if (daysSinceDue < 1) {
+              // Reminder can be sent 1 day after the due date
+              if (daysSinceDue < 0) {
+                // Due date hasn't passed yet
+                const daysUntilDue = Math.abs(daysSinceDue)
+                setReminderEligibility({
+                  canSend: false,
+                  reason: `Reminders can only be sent after the due date has passed`,
+                  daysUntilEligible: daysUntilDue + 1 // Days until due date + 1 day after
+                })
+              } else {
+                // Due date is today, can send tomorrow
+                setReminderEligibility({
+                  canSend: false,
+                  reason: `Reminders can be sent starting 1 day after the due date`,
+                  daysUntilEligible: 1
+                })
+              }
+            } else {
+              setReminderEligibility({
+                canSend: true
+              })
+            }
+          } else if (invoiceData.status === 'CANCELLED') {
+            setReminderEligibility({
+              canSend: false,
+              reason: 'Cannot send reminders for cancelled invoices'
+            })
+          } else {
+            setReminderEligibility({
+              canSend: true
+            })
+          }
         } else {
           showToast({ type: 'error', title: 'Failed to load invoice' })
           navigate('/invoices')
@@ -82,14 +139,89 @@ const InvoiceDetail: React.FC = () => {
         // Refresh invoice data
         const updatedInvoice = await apiClient.getInvoice(id)
         if (updatedInvoice.success) {
-          setInvoice(updatedInvoice.data.invoice)
+          const invoiceData = updatedInvoice.data.invoice
+          setInvoice(invoiceData)
+          // Recalculate eligibility after refresh
+          if (invoiceData.dueDate && invoiceData.status !== 'CANCELLED') {
+            const dueDate = new Date(invoiceData.dueDate)
+            // Set time to start of day for accurate day calculation
+            dueDate.setHours(0, 0, 0, 0)
+            const today = new Date()
+            today.setHours(0, 0, 0, 0)
+            const daysSinceDue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
+            const totalAmount = invoiceData.total || 0
+            const paidAmount = invoiceData.paidAmount || 0
+            const isFullyPaid = paidAmount >= totalAmount
+            
+            if (isFullyPaid) {
+              setReminderEligibility({
+                canSend: false,
+                reason: 'Invoice is fully paid'
+              })
+            } else if (daysSinceDue < 1) {
+              // Reminder can be sent 1 day after the due date
+              if (daysSinceDue < 0) {
+                // Due date hasn't passed yet
+                const daysUntilDue = Math.abs(daysSinceDue)
+                setReminderEligibility({
+                  canSend: false,
+                  reason: `Reminders can only be sent after the due date has passed`,
+                  daysUntilEligible: daysUntilDue + 1 // Days until due date + 1 day after
+                })
+              } else {
+                // Due date is today, can send tomorrow
+                setReminderEligibility({
+                  canSend: false,
+                  reason: `Reminders can be sent starting 1 day after the due date`,
+                  daysUntilEligible: 1
+                })
+              }
+            } else {
+              setReminderEligibility({
+                canSend: true
+              })
+            }
+          }
         }
       } else {
-        showToast({ type: 'error', title: 'Failed to send invoice reminder' })
+        // Handle error response
+        const errorMessage = response.error || 'Failed to send invoice reminder'
+        showToast({ 
+          type: 'warning', 
+          title: 'Cannot Send Reminder',
+          message: errorMessage
+        })
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending invoice reminder:', error)
-      showToast({ type: 'error', title: 'Failed to send invoice reminder' })
+      const errorMessage = error?.response?.data?.error || 'Failed to send invoice reminder'
+      
+      // Check for specific error conditions
+      if (errorMessage.includes('30 days') || errorMessage.includes('30 days')) {
+        showToast({ 
+          type: 'warning', 
+          title: 'Reminder Not Available Yet',
+          message: errorMessage
+        })
+      } else if (errorMessage.includes('fully paid')) {
+        showToast({ 
+          type: 'info', 
+          title: 'Invoice Already Paid',
+          message: errorMessage
+        })
+      } else if (errorMessage.includes('cancelled')) {
+        showToast({ 
+          type: 'warning', 
+          title: 'Cannot Send Reminder',
+          message: errorMessage
+        })
+      } else {
+        showToast({ 
+          type: 'warning', 
+          title: 'Cannot Send Reminder',
+          message: errorMessage
+        })
+      }
     } finally {
       setActionLoading(null)
     }
@@ -415,12 +547,33 @@ const InvoiceDetail: React.FC = () => {
             <Button 
               variant="primary" 
               onClick={handleSendEmail}
-              disabled={actionLoading !== null}
+              disabled={actionLoading !== null || !reminderEligibility?.canSend}
+              title={reminderEligibility?.reason || ''}
             >
               {actionLoading === 'send-email' ? 'Sending...' : `Send Reminder ${(invoice?.reminderLevel || 0) + 1}`}
             </Button>
           </div>
         </div>
+        
+        {/* Reminder Eligibility Banner */}
+        {reminderEligibility && !reminderEligibility.canSend && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+            <div className="flex items-start">
+              <svg className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="flex-1">
+                <h4 className="text-sm font-medium text-blue-900">Reminder Not Available</h4>
+                <p className="text-sm text-blue-700 mt-1">
+                  {reminderEligibility.reason}
+                  {reminderEligibility.daysUntilEligible && (
+                    <span className="font-semibold"> You can send a reminder in {reminderEligibility.daysUntilEligible} {reminderEligibility.daysUntilEligible === 1 ? 'day' : 'days'}.</span>
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -467,12 +620,18 @@ const InvoiceDetail: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-gray-500">Total Amount</p>
-                  <p className="font-medium text-gray-900">CHF {invoice.total ? (invoice.total / 100).toFixed(2) : '0.00'}</p>
+                  <p className="font-medium text-gray-900">CHF {invoice.total ? invoice.total.toFixed(2) : '0.00'}</p>
                 </div>
                 <div>
                   <p className="text-gray-500">Paid Amount</p>
-                  <p className="font-medium text-gray-900">CHF {invoice.paidAmount ? (invoice.paidAmount / 100).toFixed(2) : '0.00'}</p>
+                  <p className="font-medium text-gray-900">CHF {invoice.paidAmount ? invoice.paidAmount.toFixed(2) : '0.00'}</p>
                 </div>
+                {invoice.qrReference && (
+                  <div className="md:col-span-2">
+                    <p className="text-gray-500">Payment Reference (QR)</p>
+                    <p className="font-medium text-gray-900 break-all tracking-wide">{invoice.qrReference}</p>
+                  </div>
+                )}
                 <div>
                   <p className="text-gray-500">Reminder Level</p>
                   <p className="font-medium text-gray-900">
@@ -517,10 +676,10 @@ const InvoiceDetail: React.FC = () => {
                           <span className="text-gray-900">{item.quantity}</span>
                         </td>
                         <td className="py-4 px-4">
-                        <span className="text-gray-900">CHF {item.unitPrice ? (item.unitPrice / 100).toFixed(2) : '0.00'}</span>
+                        <span className="text-gray-900">CHF {item.unitPrice ? item.unitPrice.toFixed(2) : '0.00'}</span>
                         </td>
                         <td className="py-4 px-4">
-                        <span className="font-medium text-gray-900">CHF {item.lineTotal ? (item.lineTotal / 100).toFixed(2) : '0.00'}</span>
+                        <span className="font-medium text-gray-900">CHF {item.lineTotal ? item.lineTotal.toFixed(2) : '0.00'}</span>
                         </td>
                       </tr>
                     ))}
@@ -531,7 +690,7 @@ const InvoiceDetail: React.FC = () => {
                         Subtotal
                       </td>
                       <td className="py-4 px-4 font-medium text-gray-900">
-                        CHF {(invoice.subtotal / 100).toFixed(2)}
+                        CHF {invoice.subtotal ? invoice.subtotal.toFixed(2) : '0.00'}
                       </td>
                     </tr>
                     <tr>
@@ -539,7 +698,7 @@ const InvoiceDetail: React.FC = () => {
                         VAT ({invoice.vatRate}%)
                       </td>
                       <td className="py-4 px-4 font-medium text-gray-900">
-                        CHF {(invoice.vatAmount / 100).toFixed(2)}
+                        CHF {invoice.vatAmount ? invoice.vatAmount.toFixed(2) : '0.00'}
                       </td>
                     </tr>
                     <tr className="border-t-2 border-gray-200">
@@ -547,12 +706,94 @@ const InvoiceDetail: React.FC = () => {
                         Total
                       </td>
                       <td className="py-4 px-4 font-bold text-lg text-gray-900">
-                        CHF {(invoice.total / 100).toFixed(2)}
+                        CHF {invoice.total ? invoice.total.toFixed(2) : '0.00'}
                       </td>
                     </tr>
                   </tfoot>
                 </table>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Matched Payments */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Matched Payments</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {invoice.payments && invoice.payments.length > 0 ? (
+                <div className="space-y-3">
+                  {invoice.payments.map((payment: any) => (
+                    <div 
+                      key={payment.id} 
+                      className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => navigate(`/payments/${payment.id}`)}
+                    >
+                      <div className="flex items-center space-x-4 flex-1">
+                        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                          <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-gray-900">CHF {((payment.amount || 0) / 100).toFixed(2)}</p>
+                            {payment.confidence && (
+                              <span className={`px-2 py-0.5 text-xs font-medium rounded ${
+                                payment.confidence === 'HIGH' ? 'bg-green-100 text-green-800' :
+                                payment.confidence === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-gray-100 text-gray-800'
+                              }`}>
+                                {payment.confidence}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-4 text-xs text-gray-600 mt-1">
+                            <span>{payment.valueDate ? new Date(payment.valueDate).toLocaleDateString() : 'N/A'}</span>
+                            {payment.reference && (
+                              <span className="font-mono">Ref: {payment.reference}</span>
+                            )}
+                            {payment.description && (
+                              <span className="truncate max-w-xs" title={payment.description}>{payment.description}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          navigate(`/payments/${payment.id}`)
+                        }}
+                      >
+                        View
+                      </Button>
+                    </div>
+                  ))}
+                  <div className="pt-3 border-t border-gray-200">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-700">Total Paid</span>
+                      <span className="text-lg font-bold text-gray-900">
+                        CHF {(invoice.paidAmount || 0).toFixed(2)} / CHF {(invoice.total || 0).toFixed(2)}
+                      </span>
+                    </div>
+                    {invoice.paidAmount && invoice.total && invoice.paidAmount >= invoice.total && (
+                      <div className="mt-2 text-sm text-green-600 font-medium">
+                        Invoice fully paid
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <svg className="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <p>No payments matched to this invoice yet</p>
+                  <p className="text-xs mt-1">Payments will appear here once matched</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -562,7 +803,7 @@ const InvoiceDetail: React.FC = () => {
               <CardTitle>Notes</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-700">{invoice.notes}</p>
+              <p className="text-gray-700">{invoice.notes || 'No notes'}</p>
             </CardContent>
           </Card>
         </div>
@@ -579,13 +820,24 @@ const InvoiceDetail: React.FC = () => {
                 variant="primary" 
                 className="w-full"
                 onClick={handleSendEmail}
-                disabled={actionLoading !== null}
+                disabled={actionLoading !== null || !reminderEligibility?.canSend}
+                title={reminderEligibility?.reason || ''}
               >
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
                 {actionLoading === 'send-email' ? 'Sending...' : `Send Reminder ${(invoice?.reminderLevel || 0) + 1}`}
               </Button>
+              {reminderEligibility && !reminderEligibility.canSend && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
+                  <p className="text-blue-900 font-medium">{reminderEligibility.reason}</p>
+                  {reminderEligibility.daysUntilEligible && (
+                    <p className="text-blue-700 mt-1">
+                      Available in {reminderEligibility.daysUntilEligible} {reminderEligibility.daysUntilEligible === 1 ? 'day' : 'days'}.
+                    </p>
+                  )}
+                </div>
+              )}
               <Button 
                 variant="outline" 
                 className="w-full"
@@ -755,59 +1007,144 @@ const InvoiceDetail: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {/* Auto-generated PDF file */}
-                <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
-                      <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                      </svg>
+                {/* Find invoice PDF from files, or show generate option */}
+                {(() => {
+                  const invoicePdf = invoice.files?.find((f: any) => f.fileType === 'invoice_pdf')
+                  return invoicePdf ? (
+                    <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{invoicePdf.fileName}</p>
+                          <p className="text-xs text-gray-500">Auto-generated PDF • Created when invoice was created</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        {invoicePdf.downloadUrl && (
+                          <>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => window.open(invoicePdf.downloadUrl, '_blank')}
+                            >
+                              View
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => {
+                                const link = document.createElement('a')
+                                link.href = invoicePdf.downloadUrl
+                                link.download = invoicePdf.fileName
+                                link.click()
+                              }}
+                            >
+                              Download
+                            </Button>
+                          </>
+                        )}
+                        {!invoicePdf.downloadUrl && (
+                          <>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={handleViewPDF}
+                              disabled={actionLoading !== null}
+                            >
+                              {actionLoading === 'view-pdf' ? 'Opening...' : 'View'}
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={handleDownloadPDF}
+                              disabled={actionLoading !== null}
+                            >
+                              {actionLoading === 'download-pdf' ? 'Downloading...' : 'Download'}
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">Invoice {invoice?.number}.pdf</p>
-                      <p className="text-xs text-gray-500">Auto-generated PDF • Created when invoice was created</p>
+                  ) : (
+                    <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">Invoice {invoice?.number}.pdf</p>
+                          <p className="text-xs text-gray-500">PDF will be generated on-demand</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={handleViewPDF}
+                          disabled={actionLoading !== null}
+                        >
+                          {actionLoading === 'view-pdf' ? 'Opening...' : 'View'}
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={handleDownloadPDF}
+                          disabled={actionLoading !== null}
+                        >
+                          {actionLoading === 'download-pdf' ? 'Downloading...' : 'Download'}
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handleViewPDF}
-                      disabled={actionLoading !== null}
-                    >
-                      {actionLoading === 'view-pdf' ? 'Opening...' : 'View'}
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handleDownloadPDF}
-                      disabled={actionLoading !== null}
-                    >
-                      {actionLoading === 'download-pdf' ? 'Downloading...' : 'Download'}
-                    </Button>
-                  </div>
-                </div>
+                  )
+                })()}
 
-                {/* Other uploaded files */}
-                {(invoice.files || []).map((file: any) => (
-                  <div key={file.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                {/* Other uploaded files (reminder PDFs, etc.) - exclude invoice_pdf as it's shown above */}
+                {invoice.files && invoice.files.length > 0 && invoice.files
+                  .filter((f: any) => f.fileType !== 'invoice_pdf')
+                  .map((file: any) => (
+                  <div key={file.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 mt-3">
                     <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
-                        <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                        file.fileType === 'reminder_pdf' ? 'bg-orange-100' : 'bg-blue-100'
+                      }`}>
+                        <svg className={`w-4 h-4 ${file.fileType === 'reminder_pdf' ? 'text-orange-600' : 'text-blue-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                         </svg>
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{file.name}</p>
-                        <p className="text-xs text-gray-500">{file.size} • {file.uploadedAt}</p>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900">{file.fileName}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          {file.fileType === 'reminder_pdf' && (
+                            <span className="px-2 py-0.5 bg-orange-100 text-orange-800 rounded text-xs font-medium">
+                              Reminder {file.reminderLevel}
+                            </span>
+                          )}
+                          <p className="text-xs text-gray-500">
+                            {file.uploadedAt ? new Date(file.uploadedAt).toLocaleDateString() : 'N/A'}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                    <Button variant="outline" size="sm" onClick={() => handleDownloadFile(file.id)}>Download</Button>
+                    {file.downloadUrl && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => window.open(file.downloadUrl, '_blank')}
+                      >
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Download
+                      </Button>
+                    )}
                   </div>
                 ))}
-                {(!invoice.files || invoice.files.length === 0) && (
-                  <p className="text-gray-500 text-sm text-center py-4">No additional files attached</p>
-                )}
               </div>
             </CardContent>
           </Card>

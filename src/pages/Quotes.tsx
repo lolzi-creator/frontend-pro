@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useToast } from '../contexts/ToastContext'
+import { apiClient } from '../lib/api'
 import Button from '../components/Button'
 import TouchButton from '../components/TouchButton'
 import DataTable from '../components/DataTable'
@@ -48,20 +49,18 @@ const Quotes: React.FC = () => {
   })
   const [quoteModal, setQuoteModal] = useState(false)
 
-  // TODO: Replace with real API call when quotes API is available
   React.useEffect(() => {
-    // Simulate API call
     const fetchQuotes = async () => {
       setLoading(true)
       try {
-        // This would be replaced with actual API call
-        // const response = await apiClient.getQuotes()
-        // setQuotes(response.data)
-        
-        // For now, show empty state
-        setQuotes([])
-        setError(null)
+        const response = await apiClient.getQuotes()
+        if (response.success) {
+          setQuotes(response.data.quotes || [])
+        } else {
+          setError('Failed to load quotes')
+        }
       } catch (err) {
+        console.error('Error fetching quotes:', err)
         setError('Failed to load quotes')
         setQuotes([])
       } finally {
@@ -74,17 +73,17 @@ const Quotes: React.FC = () => {
 
   const handleDeleteQuote = async (quote: any) => {
     try {
-      // Here you would call the API to delete the quote
-      // await apiClient.deleteQuote(quote.id)
-      console.log('Deleting quote:', quote.id)
+      const response = await apiClient.deleteQuote(quote.id)
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Remove from local state
-      setQuotes(prev => prev.filter(q => q.id !== quote.id))
-      showSuccess('Quote Deleted', `Quote #${quote.number} has been deleted successfully.`)
+      if (response.success) {
+        // Remove from local state
+        setQuotes(prev => prev.filter(q => q.id !== quote.id))
+        showSuccess('Quote Deleted', `Quote #${quote.number} has been deleted successfully.`)
+      } else {
+        showError('Delete Failed', 'Failed to delete quote. Please try again.')
+      }
     } catch (error) {
+      console.error('Error deleting quote:', error)
       showError('Delete Failed', 'Failed to delete quote. Please try again.')
     }
   }
@@ -109,7 +108,7 @@ const Quotes: React.FC = () => {
   }
 
   const handleCreateQuote = () => {
-    setQuoteModal(true)
+    navigate('/quotes/create')
   }
 
   const handleQuoteCreated = (quoteData: any) => {
@@ -382,7 +381,7 @@ const Quotes: React.FC = () => {
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation()
-                        showInfo('Edit Quote', 'Edit functionality will be implemented soon.')
+                        navigate(`/quotes/${row.id}/edit`)
                       }}
                     >
                       Edit
@@ -485,7 +484,7 @@ const Quotes: React.FC = () => {
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation()
-                        showInfo('Edit Quote', 'Edit functionality will be implemented soon.')
+                        navigate(`/quotes/${row.id}/edit`)
                       }}
                     >
                       Edit
@@ -543,6 +542,9 @@ const Quotes: React.FC = () => {
 }
 
 export default Quotes
+
+
+
 
 
 

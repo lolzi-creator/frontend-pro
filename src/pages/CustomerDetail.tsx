@@ -567,3 +567,5 @@ const CustomerDetail: React.FC = () => {
 
 export default CustomerDetail
 
+
+
