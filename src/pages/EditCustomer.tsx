@@ -1,11 +1,12 @@
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { apiClient } from '../lib/api'
 import { useToast } from '../contexts/ToastContext'
+import { useLanguage } from '../contexts/LanguageContext'
 import Card from '../components/Card'
 import Button from '../components/Button'
 
-interface NewCustomer {
+interface Customer {
   name: string
   company: string
   email: string
@@ -22,13 +23,16 @@ interface NewCustomer {
   notes: string
 }
 
-const CreateCustomer: React.FC = () => {
+const EditCustomer: React.FC = () => {
+  const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { showToast } = useToast()
+  const { t } = useLanguage()
   
+  const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   
-  const [newCustomer, setNewCustomer] = useState<NewCustomer>({
+  const [customer, setCustomer] = useState<Customer>({
     name: '',
     company: '',
     email: '',
@@ -60,9 +64,52 @@ const CreateCustomer: React.FC = () => {
     { value: 'en', label: 'English' }
   ]
 
-  const handleChange = (field: keyof NewCustomer, value: string | number | null) => {
-    setNewCustomer({
-      ...newCustomer,
+  useEffect(() => {
+    if (id) {
+      loadCustomer()
+    }
+  }, [id])
+
+  const loadCustomer = async () => {
+    if (!id) return
+    
+    try {
+      setLoading(true)
+      const response = await apiClient.getCustomer(id)
+      if (response.success && response.data.customer) {
+        const customerData = response.data.customer
+        setCustomer({
+          name: customerData.name || '',
+          company: customerData.company || '',
+          email: customerData.email || '',
+          phone: customerData.phone || '',
+          address: customerData.address || '',
+          zip: customerData.zip || '',
+          city: customerData.city || '',
+          country: customerData.country || 'CH',
+          vatNumber: customerData.vatNumber || '',
+          uid: customerData.uid || '',
+          paymentTerms: customerData.paymentTerms || 30,
+          creditLimit: customerData.creditLimit ? customerData.creditLimit / 100 : null, // Convert from Rappen to CHF
+          language: customerData.language || 'de',
+          notes: customerData.notes || ''
+        })
+      } else {
+        showToast({ type: 'error', title: t.customer.failedToLoad || 'Failed to load customer' })
+        navigate('/customers')
+      }
+    } catch (error) {
+      console.error('Error loading customer:', error)
+      showToast({ type: 'error', title: t.customer.failedToLoad || 'Failed to load customer' })
+      navigate('/customers')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleChange = (field: keyof Customer, value: string | number | null) => {
+    setCustomer({
+      ...customer,
       [field]: value
     })
   }
@@ -70,29 +117,31 @@ const CreateCustomer: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    if (!id) return
+    
     // Validation
-    if (!newCustomer.name.trim()) {
-      showToast({ type: 'error', title: 'Name is required' })
+    if (!customer.name.trim()) {
+      showToast({ type: 'error', title: t.customer.nameRequired || 'Name is required' })
       return
     }
 
-    if (!newCustomer.address.trim()) {
-      showToast({ type: 'error', title: 'Address is required' })
+    if (!customer.address.trim()) {
+      showToast({ type: 'error', title: t.customer.addressRequired || 'Address is required' })
       return
     }
 
-    if (!newCustomer.zip.trim()) {
-      showToast({ type: 'error', title: 'ZIP code is required' })
+    if (!customer.zip.trim()) {
+      showToast({ type: 'error', title: t.customer.zipRequired || 'ZIP code is required' })
       return
     }
 
-    if (!newCustomer.city.trim()) {
-      showToast({ type: 'error', title: 'City is required' })
+    if (!customer.city.trim()) {
+      showToast({ type: 'error', title: t.customer.cityRequired || 'City is required' })
       return
     }
 
-    if (newCustomer.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newCustomer.email)) {
-      showToast({ type: 'error', title: 'Please enter a valid email address' })
+    if (customer.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.email)) {
+      showToast({ type: 'error', title: t.customer.validEmailRequired || 'Please enter a valid email address' })
       return
     }
 
@@ -101,130 +150,140 @@ const CreateCustomer: React.FC = () => {
       
       // Prepare customer data - filter out empty strings
       const customerData: any = {
-        name: newCustomer.name.trim(),
-        address: newCustomer.address.trim(),
-        zip: newCustomer.zip.trim(),
-        city: newCustomer.city.trim(),
-        country: newCustomer.country,
-        paymentTerms: newCustomer.paymentTerms,
-        language: newCustomer.language
+        name: customer.name.trim(),
+        address: customer.address.trim(),
+        zip: customer.zip.trim(),
+        city: customer.city.trim(),
+        country: customer.country,
+        paymentTerms: customer.paymentTerms,
+        language: customer.language
       }
 
       // Add optional fields only if they have values
-      if (newCustomer.company.trim()) {
-        customerData.company = newCustomer.company.trim()
+      if (customer.company.trim()) {
+        customerData.company = customer.company.trim()
       }
-      if (newCustomer.email.trim()) {
-        customerData.email = newCustomer.email.trim()
+      if (customer.email.trim()) {
+        customerData.email = customer.email.trim()
       }
-      if (newCustomer.phone.trim()) {
-        customerData.phone = newCustomer.phone.trim()
+      if (customer.phone.trim()) {
+        customerData.phone = customer.phone.trim()
       }
-      if (newCustomer.vatNumber.trim()) {
-        customerData.vatNumber = newCustomer.vatNumber.trim()
+      if (customer.vatNumber.trim()) {
+        customerData.vatNumber = customer.vatNumber.trim()
       }
-      if (newCustomer.uid.trim()) {
-        customerData.uid = newCustomer.uid.trim()
+      if (customer.uid.trim()) {
+        customerData.uid = customer.uid.trim()
       }
-      if (newCustomer.creditLimit !== null && newCustomer.creditLimit > 0) {
-        customerData.creditLimit = Math.round(newCustomer.creditLimit * 100) // Convert to Rappen
+      if (customer.creditLimit !== null && customer.creditLimit > 0) {
+        customerData.creditLimit = Math.round(customer.creditLimit * 100) // Convert to Rappen
       }
-      if (newCustomer.notes.trim()) {
-        customerData.notes = newCustomer.notes.trim()
+      if (customer.notes.trim()) {
+        customerData.notes = customer.notes.trim()
       }
 
-      const response = await apiClient.createCustomer(customerData)
+      const response = await apiClient.updateCustomer(id, customerData)
       
       if (response.success) {
         showToast({ 
           type: 'success', 
-          title: 'Customer created successfully!',
-          message: `Customer number: ${response.data.customer.customerNumber}`
+          title: t.customer.customerUpdated || 'Customer updated successfully!',
+          message: t.customer.customerUpdatedSuccess || 'Customer has been updated successfully.'
         })
         
-        // Navigate to the new customer detail page
-        navigate(`/customers/${response.data.customer.id}`)
+        navigate(`/customers/${id}`)
       } else {
-        showToast({ type: 'error', title: 'Failed to create customer', message: response.error })
+        showToast({ type: 'error', title: t.customer.failedToUpdate || 'Failed to update customer', message: response.error })
       }
     } catch (error: any) {
-      console.error('Error creating customer:', error)
+      console.error('Error updating customer:', error)
       showToast({ 
         type: 'error', 
-        title: 'Failed to create customer',
-        message: error.response?.data?.error || 'An unexpected error occurred'
+        title: t.customer.failedToUpdate || 'Failed to update customer',
+        message: error.response?.data?.error || t.common.error
       })
     } finally {
       setSubmitting(false)
     }
   }
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">{t.customer.loadingCustomer || 'Loading customer...'}</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Create New Customer</h1>
-          <p className="mt-2 text-gray-600">Fill in the details below to create a new customer</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t.customer.edit}</h1>
+          <p className="mt-2 text-gray-600">{t.customer.editSubtitle || 'Update the customer details below'}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Basic Information */}
           <Card>
             <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-medium text-gray-900">Basic Information</h2>
+              <h2 className="text-lg font-medium text-gray-900">{t.customer.basicInformation || 'Basic Information'}</h2>
             </div>
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Full Name *
+                    {t.customer.fullName || 'Full Name'} *
                   </label>
                   <input
                     type="text"
-                    value={newCustomer.name}
+                    value={customer.name}
                     onChange={(e) => handleChange('name', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="John Doe"
+                    placeholder={t.customer.namePlaceholder || 'John Doe'}
                     required
                   />
                 </div>
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Company
+                    {t.customer.company || 'Company'}
                   </label>
                   <input
                     type="text"
-                    value={newCustomer.company}
+                    value={customer.company}
                     onChange={(e) => handleChange('company', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Company Name"
+                    placeholder={t.customer.companyPlaceholder || 'Company Name'}
                   />
                 </div>
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email
+                    {t.customer.email}
                   </label>
                   <input
                     type="email"
-                    value={newCustomer.email}
+                    value={customer.email}
                     onChange={(e) => handleChange('email', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="customer@example.com"
+                    placeholder={t.customer.emailPlaceholder || 'customer@example.com'}
                   />
                 </div>
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone
+                    {t.customer.phone}
                   </label>
                   <input
                     type="tel"
-                    value={newCustomer.phone}
+                    value={customer.phone}
                     onChange={(e) => handleChange('phone', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="+41 44 123 45 67"
+                    placeholder={t.customer.phonePlaceholder || '+41 44 123 45 67'}
                   />
                 </div>
               </div>
@@ -234,20 +293,20 @@ const CreateCustomer: React.FC = () => {
           {/* Address Information */}
           <Card>
             <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-medium text-gray-900">Address Information</h2>
+              <h2 className="text-lg font-medium text-gray-900">{t.customer.addressInformation || 'Address Information'}</h2>
             </div>
             <div className="p-6">
               <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Address *
+                    {t.customer.address} *
                   </label>
                   <input
                     type="text"
-                    value={newCustomer.address}
+                    value={customer.address}
                     onChange={(e) => handleChange('address', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Street address"
+                    placeholder={t.customer.addressPlaceholder || 'Street address'}
                     required
                   />
                 </div>
@@ -255,11 +314,11 @@ const CreateCustomer: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      ZIP Code *
+                      {t.customer.zipCode || 'ZIP Code'} *
                     </label>
                     <input
                       type="text"
-                      value={newCustomer.zip}
+                      value={customer.zip}
                       onChange={(e) => handleChange('zip', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="8001"
@@ -269,24 +328,24 @@ const CreateCustomer: React.FC = () => {
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      City *
+                      {t.customer.city} *
                     </label>
                     <input
                       type="text"
-                      value={newCustomer.city}
+                      value={customer.city}
                       onChange={(e) => handleChange('city', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Zurich"
+                      placeholder={t.customer.cityPlaceholder || 'Zurich'}
                       required
                     />
                   </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Country
+                      {t.customer.country}
                     </label>
                     <select
-                      value={newCustomer.country}
+                      value={customer.country}
                       onChange={(e) => handleChange('country', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
@@ -303,17 +362,17 @@ const CreateCustomer: React.FC = () => {
           {/* Business Information */}
           <Card>
             <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-medium text-gray-900">Business Information</h2>
+              <h2 className="text-lg font-medium text-gray-900">{t.customer.businessInformation || 'Business Information'}</h2>
             </div>
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    VAT Number
+                    {t.customer.vatNumber || 'VAT Number'}
                   </label>
                   <input
                     type="text"
-                    value={newCustomer.vatNumber}
+                    value={customer.vatNumber}
                     onChange={(e) => handleChange('vatNumber', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="CHE-123.456.789"
@@ -322,11 +381,11 @@ const CreateCustomer: React.FC = () => {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    UID Number
+                    {t.customer.uidNumber || 'UID Number'}
                   </label>
                   <input
                     type="text"
-                    value={newCustomer.uid}
+                    value={customer.uid}
                     onChange={(e) => handleChange('uid', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="CHE-123.456.789"
@@ -335,11 +394,11 @@ const CreateCustomer: React.FC = () => {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Payment Terms (days)
+                    {t.customer.paymentTerms} ({t.customer.days || 'days'})
                   </label>
                   <input
                     type="number"
-                    value={newCustomer.paymentTerms}
+                    value={customer.paymentTerms}
                     onChange={(e) => handleChange('paymentTerms', parseInt(e.target.value) || 30)}
                     onFocus={(e) => {
                       if (parseInt(e.target.value) === 0) {
@@ -351,17 +410,17 @@ const CreateCustomer: React.FC = () => {
                     max="365"
                   />
                   <div className="text-xs text-gray-500 mt-1">
-                    Default: 30 days
+                    {t.customer.defaultDays || 'Default: 30 days'}
                   </div>
                 </div>
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Credit Limit (CHF)
+                    {t.customer.creditLimit || 'Credit Limit'} (CHF)
                   </label>
                   <input
                     type="number"
-                    value={newCustomer.creditLimit || ''}
+                    value={customer.creditLimit || ''}
                     onChange={(e) => handleChange('creditLimit', e.target.value ? parseFloat(e.target.value) : null)}
                     onFocus={(e) => {
                       if (parseFloat(e.target.value) === 0) {
@@ -371,16 +430,16 @@ const CreateCustomer: React.FC = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     step="0.01"
                     min="0"
-                    placeholder="Optional"
+                    placeholder={t.common.optional || 'optional'}
                   />
                 </div>
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Language
+                    {t.customer.language}
                   </label>
                   <select
-                    value={newCustomer.language}
+                    value={customer.language}
                     onChange={(e) => handleChange('language', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
@@ -396,15 +455,15 @@ const CreateCustomer: React.FC = () => {
           {/* Additional Notes */}
           <Card>
             <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-medium text-gray-900">Additional Notes</h2>
+              <h2 className="text-lg font-medium text-gray-900">{t.customer.additionalNotes || 'Additional Notes'}</h2>
             </div>
             <div className="p-6">
               <textarea
-                value={newCustomer.notes}
+                value={customer.notes}
                 onChange={(e) => handleChange('notes', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 rows={4}
-                placeholder="Any additional notes about this customer..."
+                placeholder={t.customer.notesPlaceholder || 'Any additional notes about this customer...'}
               />
             </div>
           </Card>
@@ -414,16 +473,16 @@ const CreateCustomer: React.FC = () => {
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate('/customers')}
+              onClick={() => navigate(`/customers/${id}`)}
             >
-              Cancel
+              {t.common.cancel}
             </Button>
             <Button
               type="submit"
               variant="primary"
               disabled={submitting}
             >
-              {submitting ? 'Creating Customer...' : 'Create Customer'}
+              {submitting ? (t.customer.updatingCustomer || 'Updating Customer...') : (t.customer.updateCustomer || 'Update Customer')}
             </Button>
           </div>
         </form>
@@ -432,5 +491,5 @@ const CreateCustomer: React.FC = () => {
   )
 }
 
-export default CreateCustomer
+export default EditCustomer
 

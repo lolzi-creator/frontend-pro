@@ -5,11 +5,13 @@ import Button from '../components/Button'
 import ConfirmationModal from '../components/ConfirmationModal'
 import { apiClient } from '../lib/api'
 import { useToast } from '../contexts/ToastContext'
+import { useLanguage } from '../contexts/LanguageContext'
 
 const QuoteDetail: React.FC = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const { showToast } = useToast()
+  const { t } = useLanguage()
   
   const [quote, setQuote] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -26,7 +28,7 @@ const QuoteDetail: React.FC = () => {
         if (response.success) {
           setQuote(response.data.quote)
         } else {
-          showToast({ type: 'error', title: 'Failed to load quote' })
+          showToast({ type: 'error', title: t.quote.failedToLoad || 'Failed to load quote' })
           navigate('/quotes')
         }
       } catch (error) {
@@ -95,11 +97,11 @@ const QuoteDetail: React.FC = () => {
       if (response.success) {
         showToast({ 
           type: 'success', 
-          title: 'Email Sent',
-          message: `Quote has been sent to ${response.data.sentTo || 'customer'}.`
+          title: t.quote.emailSent || 'Email Sent',
+          message: `${t.quote.quoteSentTo || 'Quote has been sent to'} ${response.data.sentTo || t.quote.customer || 'customer'}.`
         })
       } else {
-        showToast({ type: 'error', title: 'Failed to send email' })
+        showToast({ type: 'error', title: t.quote.failedToSendEmail || 'Failed to send email' })
       }
     } catch (error) {
       console.error('Error sending email:', error)
@@ -112,14 +114,14 @@ const QuoteDetail: React.FC = () => {
   const handleConvertToInvoice = async () => {
     if (!quote || !quote.id) return
     
-    if (window.confirm('Are you sure you want to convert this quote to an invoice? This action will create a new invoice and cannot be undone.')) {
+    if (window.confirm(t.quote.convertConfirmation || 'Are you sure you want to convert this quote to an invoice? This action will create a new invoice and cannot be undone.')) {
       try {
         setActionLoading('convert')
         // Navigate to quote acceptance page which will auto-convert
         window.location.href = quote.acceptanceLink || ''
       } catch (error) {
         console.error('Error converting quote:', error)
-        showToast({ type: 'error', title: 'Failed to convert quote' })
+        showToast({ type: 'error', title: t.quote.failedToConvert || 'Failed to convert quote' })
       } finally {
         setActionLoading(null)
       }
@@ -131,30 +133,24 @@ const QuoteDetail: React.FC = () => {
     
     try {
       setActionLoading('download')
-      // Generate PDF on-the-fly
-      const response = await fetch(`http://localhost:3001/api/v1/quotes/${quote.id}/pdf`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
-      })
       
-      if (response.ok) {
-        const blob = await response.blob()
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `Quote-${quote.number}.pdf`
-        document.body.appendChild(a)
-        a.click()
-        window.URL.revokeObjectURL(url)
-        document.body.removeChild(a)
-        showToast({ type: 'success', title: 'PDF Downloaded' })
-      } else {
-        showToast({ type: 'error', title: 'Failed to download PDF' })
-      }
+      // Download PDF using apiClient
+      const pdfBlob = await apiClient.downloadQuotePDF(quote.id)
+      
+      // Create a blob URL and trigger download
+      const url = window.URL.createObjectURL(pdfBlob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `Quote-${quote.number}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+      
+      showToast({ type: 'success', title: t.quote.pdfDownloaded || 'PDF Downloaded' })
     } catch (error) {
       console.error('Error downloading PDF:', error)
-      showToast({ type: 'error', title: 'Failed to download PDF' })
+      showToast({ type: 'error', title: t.quote.failedToDownloadPDF || 'Failed to download PDF' })
     } finally {
       setActionLoading(null)
     }
@@ -174,12 +170,12 @@ const QuoteDetail: React.FC = () => {
       if (response.success) {
         showToast({ 
           type: 'success', 
-          title: 'Quote Deleted',
-          message: `Quote #${quote.number} has been deleted successfully.`
+          title: t.quote.quoteDeleted,
+          message: `${t.quote.number} #${quote.number} ${t.quote.deletedSuccessfully || 'has been deleted successfully'}.`
         })
         navigate('/quotes')
       } else {
-        showToast({ type: 'error', title: 'Failed to delete quote' })
+        showToast({ type: 'error', title: t.quote.failedToDelete || 'Failed to delete quote' })
       }
     } catch (error) {
       console.error('Error deleting quote:', error)
@@ -196,7 +192,7 @@ const QuoteDetail: React.FC = () => {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading quote...</p>
+            <p className="mt-4 text-gray-600">{t.quote.loadingQuote || 'Loading quote...'}</p>
           </div>
         </div>
       </div>
@@ -207,13 +203,13 @@ const QuoteDetail: React.FC = () => {
     return (
       <div className="p-8">
         <div className="text-center">
-          <p className="text-gray-600">Quote not found</p>
+          <p className="text-gray-600">{t.quote.quoteNotFound || 'Quote not found'}</p>
           <Button
             variant="outline"
             onClick={() => navigate('/quotes')}
             className="mt-4"
           >
-            Back to Quotes
+            {t.quote.backToQuotes || 'Back to Quotes'}
           </Button>
         </div>
       </div>
@@ -234,13 +230,13 @@ const QuoteDetail: React.FC = () => {
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
-              Back to Quotes
+              {t.quote.backToQuotes || 'Back to Quotes'}
             </Button>
             <div>
               <h2 className="text-3xl font-bold text-gray-900" style={{fontFamily: 'Poppins'}}>
                 {quote.number}
               </h2>
-              <p className="text-gray-600">Quote Details</p>
+              <p className="text-gray-600">{t.quote.quoteDetails || 'Quote Details'}</p>
             </div>
           </div>
           <div className="flex items-center space-x-3">
@@ -248,7 +244,7 @@ const QuoteDetail: React.FC = () => {
               {getStatusIcon(quote.status)}
               <span className="ml-1 capitalize">{quote.status}</span>
             </span>
-            <Button variant="outline" onClick={() => navigate(`/quotes/${quote.id}/edit`)}>Edit</Button>
+            <Button variant="outline" onClick={() => navigate(`/quotes/${quote.id}/edit`)}>{t.quote.edit}</Button>
           </div>
         </div>
       </div>
@@ -262,25 +258,25 @@ const QuoteDetail: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Company Info */}
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">From</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">{t.invoice.from || 'From'}</h3>
                   <div className="text-sm text-gray-600">
                     <p className="font-medium text-gray-900">{quote.company?.name || 'N/A'}</p>
                     <p>{quote.company?.address || 'N/A'}</p>
                     <p>{quote.company?.zip} {quote.company?.city}</p>
-                    {quote.company?.phone && <p>Phone: {quote.company.phone}</p>}
-                    {quote.company?.email && <p>Email: {quote.company.email}</p>}
+                    {quote.company?.phone && <p>{t.invoice.phone}: {quote.company.phone}</p>}
+                    {quote.company?.email && <p>{t.invoice.email}: {quote.company.email}</p>}
                   </div>
                 </div>
 
                 {/* Customer Info */}
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Quote For</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">{t.quote.quoteFor || 'Quote For'}</h3>
                   <div className="text-sm text-gray-600">
                     <p className="font-medium text-gray-900">{quote.customer?.name || 'N/A'}</p>
                     {quote.customer?.company && <p>{quote.customer.company}</p>}
                     {quote.customer?.address && <p>{quote.customer.address}</p>}
-                    {quote.customer?.email && <p>Email: {quote.customer.email}</p>}
-                    {quote.customer?.phone && <p>Phone: {quote.customer.phone}</p>}
+                    {quote.customer?.email && <p>{t.invoice.email}: {quote.customer.email}</p>}
+                    {quote.customer?.phone && <p>{t.invoice.phone}: {quote.customer.phone}</p>}
                   </div>
                 </div>
               </div>
@@ -288,16 +284,16 @@ const QuoteDetail: React.FC = () => {
               {/* Quote Details */}
               <div className="mt-8 grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                 <div>
-                  <p className="text-gray-500">Quote Date</p>
+                  <p className="text-gray-500">{t.quote.quoteDate || 'Quote Date'}</p>
                   <p className="font-medium text-gray-900">{new Date(quote.date).toLocaleDateString()}</p>
                 </div>
                 <div>
-                  <p className="text-gray-500">Valid Until</p>
+                  <p className="text-gray-500">{t.quote.expiryDate}</p>
                   <p className="font-medium text-gray-900">{new Date(quote.expiryDate).toLocaleDateString()}</p>
                 </div>
                 <div>
-                  <p className="text-gray-500">Total Amount</p>
-                  <p className="font-medium text-gray-900">CHF {(quote.total / 100).toFixed(2)}</p>
+                  <p className="text-gray-500">{t.quote.totalAmount || 'Total Amount'}</p>
+                  <p className="font-medium text-gray-900">CHF {quote.total.toFixed(2)}</p>
                 </div>
               </div>
             </CardContent>
@@ -306,17 +302,17 @@ const QuoteDetail: React.FC = () => {
           {/* Line Items */}
           <Card>
             <CardHeader>
-              <CardTitle>Services & Pricing</CardTitle>
+              <CardTitle>{t.quote.servicesPricing || 'Services & Pricing'}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-gray-200">
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Description</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Qty</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Unit Price</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Total</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-600">{t.invoice.description}</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-600">{t.invoice.quantity}</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-600">{t.invoice.unitPrice}</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-600">{t.invoice.total}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -329,10 +325,10 @@ const QuoteDetail: React.FC = () => {
                           <span className="text-gray-900">{item.quantity}</span>
                         </td>
                         <td className="py-4 px-4">
-                          <span className="text-gray-900">CHF {(item.unitPrice / 100).toFixed(2)}</span>
+                          <span className="text-gray-900">CHF {item.unitPrice.toFixed(2)}</span>
                         </td>
                         <td className="py-4 px-4">
-                          <span className="font-medium text-gray-900">CHF {(item.lineTotal / 100).toFixed(2)}</span>
+                          <span className="font-medium text-gray-900">CHF {item.lineTotal.toFixed(2)}</span>
                         </td>
                       </tr>
                     ))}
@@ -340,26 +336,26 @@ const QuoteDetail: React.FC = () => {
                   <tfoot>
                     <tr className="border-t border-gray-200">
                       <td colSpan={3} className="py-4 px-4 text-right font-medium text-gray-900">
-                        Subtotal
+                        {t.invoice.subtotal}
                       </td>
                       <td className="py-4 px-4 font-medium text-gray-900">
-                        CHF {(quote.subtotal / 100).toFixed(2)}
+                        CHF {quote.subtotal.toFixed(2)}
                       </td>
                     </tr>
                     <tr>
                       <td colSpan={3} className="py-4 px-4 text-right font-medium text-gray-900">
-                        VAT
+                        {t.invoice.vat}
                       </td>
                       <td className="py-4 px-4 font-medium text-gray-900">
-                        CHF {(quote.vatAmount / 100).toFixed(2)}
+                        CHF {quote.vatAmount.toFixed(2)}
                       </td>
                     </tr>
                     <tr className="border-t-2 border-gray-200">
                       <td colSpan={3} className="py-4 px-4 text-right font-bold text-lg text-gray-900">
-                        Total
+                        {t.invoice.total}
                       </td>
                       <td className="py-4 px-4 font-bold text-lg text-gray-900">
-                        CHF {(quote.total / 100).toFixed(2)}
+                        CHF {quote.total.toFixed(2)}
                       </td>
                     </tr>
                   </tfoot>
@@ -372,7 +368,7 @@ const QuoteDetail: React.FC = () => {
           {quote.internalNotes && (
             <Card>
               <CardHeader>
-                <CardTitle>Internal Notes</CardTitle>
+                <CardTitle>{t.invoice.internalNotes || 'Internal Notes'}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
@@ -388,7 +384,7 @@ const QuoteDetail: React.FC = () => {
           {/* Actions */}
           <Card>
             <CardHeader>
-              <CardTitle>Actions</CardTitle>
+              <CardTitle>{t.quote.actions}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <Button 
@@ -400,7 +396,7 @@ const QuoteDetail: React.FC = () => {
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
-                Send to Customer
+                {t.quote.send}
               </Button>
               <Button 
                 variant="outline" 
@@ -411,7 +407,7 @@ const QuoteDetail: React.FC = () => {
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                Convert to Invoice
+                {t.quote.convert}
               </Button>
               <Button 
                 variant="outline" 
@@ -422,7 +418,7 @@ const QuoteDetail: React.FC = () => {
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                Download PDF
+                {t.quote.downloadPDF || 'Download PDF'}
               </Button>
               <Button 
                 variant="outline" 
@@ -433,7 +429,7 @@ const QuoteDetail: React.FC = () => {
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
-                Delete Quote
+                {t.quote.delete}
               </Button>
             </CardContent>
           </Card>
@@ -441,51 +437,51 @@ const QuoteDetail: React.FC = () => {
           {/* Quote Status */}
           <Card>
             <CardHeader>
-              <CardTitle>Quote Status</CardTitle>
+              <CardTitle>{t.quote.quoteStatus || 'Quote Status'}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Status</span>
+                  <span className="text-sm text-gray-600">{t.quote.status}</span>
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(quote.status)}`}>
                     {getStatusIcon(quote.status)}
                     <span className="ml-1 capitalize">{quote.status}</span>
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Created</span>
+                  <span className="text-sm text-gray-600">{t.quote.created || 'Created'}</span>
                   <span className="text-sm font-medium text-gray-900">{new Date(quote.date).toLocaleDateString()}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Valid Until</span>
+                  <span className="text-sm text-gray-600">{t.quote.expiryDate}</span>
                   <span className="text-sm font-medium text-gray-900">{new Date(quote.expiryDate).toLocaleDateString()}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Days Remaining</span>
+                  <span className="text-sm text-gray-600">{t.quote.daysRemaining || 'Days Remaining'}</span>
                   <span className="text-sm font-medium text-gray-900">
-                    {Math.max(0, Math.ceil((new Date(quote.expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))} days
+                    {Math.max(0, Math.ceil((new Date(quote.expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))} {t.quote.days || 'days'}
                   </span>
                 </div>
                 <div className="mt-4">
                   {quote.acceptanceLink && !quote.acceptanceLink.startsWith('undefined') ? (
                     <div className="p-3 bg-blue-50 rounded-lg">
-                      <p className="text-xs text-gray-600 mb-2">Acceptance Link:</p>
+                      <p className="text-xs text-gray-600 mb-2">{t.quote.acceptanceLink || 'Acceptance Link'}:</p>
                       <p className="text-xs font-mono text-blue-800 break-all">{quote.acceptanceLink}</p>
                       <button
                         onClick={() => {
                           if (quote.acceptanceLink) {
                             navigator.clipboard.writeText(quote.acceptanceLink)
-                            showToast({ type: 'success', title: 'Link copied to clipboard' })
+                            showToast({ type: 'success', title: t.quote.linkCopied || 'Link copied to clipboard' })
                           }
                         }}
                         className="mt-2 text-xs text-blue-600 hover:text-blue-800"
                       >
-                        Copy Link
+                        {t.quote.copyLink || 'Copy Link'}
                       </button>
                     </div>
                   ) : (
                     <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                      <p className="text-xs text-yellow-800 mb-2">Acceptance link is invalid</p>
+                      <p className="text-xs text-yellow-800 mb-2">{t.quote.invalidAcceptanceLink || 'Acceptance link is invalid'}</p>
                       <Button
                         variant="outline"
                         size="sm"
@@ -494,14 +490,14 @@ const QuoteDetail: React.FC = () => {
                             setActionLoading('regenerate-link')
                             const response = await apiClient.regenerateQuoteAcceptanceLink(quote.id)
                             if (response.success) {
-                              showToast({ type: 'success', title: 'Acceptance link regenerated' })
+                              showToast({ type: 'success', title: t.quote.linkRegenerated || 'Acceptance link regenerated' })
                               // Reload quote data
                               const quoteResponse = await apiClient.getQuote(quote.id)
                               if (quoteResponse.success) {
                                 setQuote(quoteResponse.data.quote)
                               }
                             } else {
-                              showToast({ type: 'error', title: 'Failed to regenerate link' })
+                              showToast({ type: 'error', title: t.quote.failedToRegenerateLink || 'Failed to regenerate link' })
                             }
                           } catch (error) {
                             console.error('Error regenerating link:', error)
@@ -512,7 +508,7 @@ const QuoteDetail: React.FC = () => {
                         }}
                         disabled={actionLoading !== null}
                       >
-                        {actionLoading === 'regenerate-link' ? 'Regenerating...' : 'Regenerate Link'}
+                        {actionLoading === 'regenerate-link' ? (t.quote.regenerating || 'Regenerating...') : (t.quote.regenerateLink || 'Regenerate Link')}
                       </Button>
                     </div>
                   )}
@@ -528,10 +524,10 @@ const QuoteDetail: React.FC = () => {
         isOpen={deleteModal}
         onClose={() => setDeleteModal(false)}
         onConfirm={handleDelete}
-        title="Delete Quote"
-        message={`Are you sure you want to delete quote #${quote?.number}? This action cannot be undone.`}
-        confirmText="Delete"
-        cancelText="Cancel"
+        title={t.quote.delete}
+        message={t.quote.deleteConfirmation?.replace('{{number}}', quote?.number || '') || `Are you sure you want to delete quote #${quote?.number}? This action cannot be undone.`}
+        confirmText={t.common.delete}
+        cancelText={t.common.cancel}
         type="danger"
       />
     </div>

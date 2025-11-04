@@ -45,7 +45,6 @@ export { default as Chart } from './Chart'
 export { default as LineChart } from './LineChart'
 export { default as BarChart } from './BarChart'
 export { default as PieChart } from './PieChart'
-export { default as RevenueChart } from './RevenueChart'
 
 // File Upload
 export { default as FileUpload } from './FileUpload'
@@ -53,8 +52,6 @@ export { default as FileUpload } from './FileUpload'
 // Dashboard Components
 export { default as StatsCard } from './StatsCard'
 export { default as RecentActivity } from './RecentActivity'
-export { default as QuickActions } from './QuickActions'
-export { default as OverdueAlerts } from './OverdueAlerts'
 export { default as KPIMetric } from './KPIMetric'
 export { default as DashboardWidget } from './DashboardWidget'
 export { default as RevenueForecastChart } from './RevenueForecastChart'
@@ -66,3 +63,4 @@ export { default as AdvancedFilters } from './AdvancedFilters'
 
 // Auth Components
 export { default as ProtectedRoute } from './ProtectedRoute'
+

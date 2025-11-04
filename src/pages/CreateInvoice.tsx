@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiClient } from '../lib/api'
 import { useToast } from '../contexts/ToastContext'
+import { useLanguage } from '../contexts/LanguageContext'
 import Card from '../components/Card'
 import Button from '../components/Button'
 
@@ -34,10 +35,17 @@ interface NewInvoice {
 const CreateInvoice: React.FC = () => {
   const navigate = useNavigate()
   const { showToast } = useToast()
+  const { t } = useLanguage()
   
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [vatRates, setVatRates] = useState<Array<{ value: number; label: string }>>([
+    { value: 7.7, label: `7.7% (${t.invoice.vatStandard || 'Standard'})` },
+    { value: 2.5, label: `2.5% (${t.invoice.vatReduced || 'Reduced'})` },
+    { value: 3.7, label: `3.7% (${t.invoice.vatAccommodation || 'Accommodation'})` },
+    { value: 0, label: `0% (${t.invoice.vatExempt || 'Exempt'})` }
+  ])
   
   const [newInvoice, setNewInvoice] = useState<NewInvoice>({
     customerId: '',
@@ -48,25 +56,55 @@ const CreateInvoice: React.FC = () => {
     items: [{
       description: '',
       quantity: 1,
-      unit: 'Stück',
+      unit: t.invoice.unitPiece || 'Piece',
       unitPrice: 0,
       discount: 0,
       vatRate: 7.7
     }]
   })
 
-  const vatRates = [
-    { value: 7.7, label: '7.7% (Standard)' },
-    { value: 2.5, label: '2.5% (Reduziert)' },
-    { value: 3.7, label: '3.7% (Beherbergung)' },
-    { value: 0, label: '0% (Befreit)' }
+  const units = [
+    t.invoice.unitPiece || 'Piece',
+    t.invoice.unitHour || 'Hour',
+    t.invoice.unitDay || 'Day',
+    t.invoice.unitKg || 'kg',
+    t.invoice.unitLiter || 'Liter',
+    t.invoice.unitMeter || 'Meter',
+    t.invoice.unitFlat || 'Flat'
   ]
-
-  const units = ['Stück', 'Stunden', 'Tage', 'kg', 'Liter', 'Meter', 'Pauschal']
 
   useEffect(() => {
     loadCustomers()
+    loadVatRates()
   }, [])
+
+  const loadVatRates = async () => {
+    try {
+      const response = await apiClient.getVatRates()
+      if (response.success && response.data?.vatRates && response.data.vatRates.length > 0) {
+        const formattedRates = response.data.vatRates.map((rate: any) => ({
+          value: rate.rate,
+          label: `${rate.rate}% (${rate.name})`
+        }))
+        setVatRates(formattedRates)
+        
+        // Set default VAT rate for new items
+        const defaultRate = response.data.vatRates.find((r: any) => r.isDefault)
+        if (defaultRate && newInvoice.items.length > 0 && newInvoice.items[0].vatRate === 7.7) {
+          setNewInvoice({
+            ...newInvoice,
+            items: newInvoice.items.map(item => ({
+              ...item,
+              vatRate: defaultRate.rate
+            }))
+          })
+        }
+      }
+    } catch (error) {
+      console.error('Error loading VAT rates:', error)
+      // Use default rates if API fails
+    }
+  }
 
   const loadCustomers = async () => {
     try {
@@ -77,7 +115,7 @@ const CreateInvoice: React.FC = () => {
       }
     } catch (error) {
       console.error('Error loading customers:', error)
-      showToast({ type: 'error', title: 'Failed to load customers' })
+      showToast({ type: 'error', title: t.invoice.failedToLoadCustomers || 'Failed to load customers' })
     } finally {
       setLoading(false)
     }
@@ -125,7 +163,7 @@ const CreateInvoice: React.FC = () => {
       items: [...newInvoice.items, {
         description: '',
         quantity: 1,
-        unit: 'Stück',
+        unit: t.invoice.unitPiece || 'Piece',
         unitPrice: 0,
         discount: 0,
         vatRate: 7.7
@@ -177,17 +215,17 @@ const CreateInvoice: React.FC = () => {
     
     // Validation
     if (!newInvoice.customerId) {
-      showToast({ type: 'error', title: 'Please select a customer' })
+      showToast({ type: 'error', title: t.invoice.pleaseSelectCustomer || 'Please select a customer' })
       return
     }
 
     if (newInvoice.items.some(item => !item.description.trim())) {
-      showToast({ type: 'error', title: 'Please fill in all item descriptions' })
+      showToast({ type: 'error', title: t.invoice.pleaseFillDescriptions || 'Please fill in all item descriptions' })
       return
     }
 
     if (newInvoice.items.some(item => item.unitPrice <= 0)) {
-      showToast({ type: 'error', title: 'Please enter valid unit prices' })
+      showToast({ type: 'error', title: t.invoice.pleaseEnterValidPrices || 'Please enter valid unit prices' })
       return
     }
 
@@ -215,14 +253,14 @@ const CreateInvoice: React.FC = () => {
       if (response.success) {
         showToast({ 
           type: 'success', 
-          title: 'Invoice created successfully!',
-          message: `Invoice number: ${response.data.invoice.number}`
+          title: t.invoice.invoiceCreatedSuccess || 'Invoice created successfully!',
+          message: `${t.invoice.invoiceNumber}: ${response.data.invoice.number}`
         })
         
         // Navigate to the new invoice detail page
         navigate(`/invoices/${response.data.invoice.id}`)
       } else {
-        showToast({ type: 'error', title: 'Failed to create invoice' })
+        showToast({ type: 'error', title: t.invoice.failedToCreateInvoice || 'Failed to create invoice' })
       }
     } catch (error) {
       console.error('Error creating invoice:', error)
@@ -239,7 +277,7 @@ const CreateInvoice: React.FC = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading customers...</p>
+          <p className="mt-4 text-gray-600">{t.invoice.loadingCustomers || 'Loading customers...'}</p>
         </div>
       </div>
     )
@@ -249,21 +287,21 @@ const CreateInvoice: React.FC = () => {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Create New Invoice</h1>
-          <p className="mt-2 text-gray-600">Fill in the details below to create a new invoice</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t.invoice.create}</h1>
+          <p className="mt-2 text-gray-600">{t.invoice.createSubtitle || 'Fill in the details below to create a new invoice'}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Basic Invoice Info */}
           <Card>
             <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-medium text-gray-900">Invoice Details</h2>
+              <h2 className="text-lg font-medium text-gray-900">{t.invoice.invoiceDetails || 'Invoice Details'}</h2>
             </div>
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Customer *
+                    {t.invoice.customer} *
                   </label>
                   <select
                     value={newInvoice.customerId}
@@ -271,10 +309,10 @@ const CreateInvoice: React.FC = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   >
-                    <option value="">Select Customer</option>
+                    <option value="">{t.invoice.selectCustomer || 'Select Customer'}</option>
                     {customers.map(customer => (
                       <option key={customer.id} value={customer.id}>
-                        {customer.name} ({customer.customerNumber}) - {customer.paymentTerms} days
+                        {customer.name} ({customer.customerNumber}) - {customer.paymentTerms} {t.invoice.days || 'days'}
                       </option>
                     ))}
                   </select>
@@ -282,7 +320,7 @@ const CreateInvoice: React.FC = () => {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Invoice Date *
+                    {t.invoice.date} *
                   </label>
                   <input
                     type="date"
@@ -295,7 +333,7 @@ const CreateInvoice: React.FC = () => {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Due Date
+                    {t.invoice.dueDate}
                   </label>
                   <input
                     type="date"
@@ -305,8 +343,8 @@ const CreateInvoice: React.FC = () => {
                   />
                   <div className="text-xs text-gray-500 mt-1">
                     {newInvoice.customerId && customers.find(c => c.id === newInvoice.customerId) 
-                      ? `Auto-calculated from customer payment terms`
-                      : 'Will be auto-calculated when customer is selected'}
+                      ? (t.invoice.autoCalculatedFromTerms || 'Auto-calculated from customer payment terms')
+                      : (t.invoice.willAutoCalculate || 'Will be auto-calculated when customer is selected')}
                   </div>
                 </div>
               </div>
@@ -316,13 +354,13 @@ const CreateInvoice: React.FC = () => {
           {/* Discount */}
           <Card>
             <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-medium text-gray-900">Discount</h2>
+              <h2 className="text-lg font-medium text-gray-900">{t.invoice.discount || 'Discount'}</h2>
             </div>
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Discount Code
+                    {t.invoice.discountCode || 'Discount Code'}
                   </label>
                   <input
                     type="text"
@@ -334,12 +372,17 @@ const CreateInvoice: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Discount Amount (CHF)
+                    {t.invoice.discountAmount || 'Discount Amount'} (CHF)
                   </label>
                   <input
                     type="number"
                     value={newInvoice.discountAmount}
                     onChange={(e) => setNewInvoice({...newInvoice, discountAmount: parseFloat(e.target.value) || 0})}
+                    onFocus={(e) => {
+                      if (parseFloat(e.target.value) === 0) {
+                        e.target.value = '';
+                      }
+                    }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     step="0.01"
                     min="0"
@@ -353,14 +396,14 @@ const CreateInvoice: React.FC = () => {
           <Card>
             <div className="px-6 py-4 border-b border-gray-200">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-medium text-gray-900">Invoice Items</h2>
+                <h2 className="text-lg font-medium text-gray-900">{t.invoice.invoiceItems || 'Invoice Items'}</h2>
                 <Button
                   type="button"
                   variant="outline"
                   onClick={addInvoiceItem}
                   className="text-sm"
                 >
-                  ➕ Add Item
+                  ➕ {t.invoice.addItem || 'Add Item'}
                 </Button>
               </div>
             </div>
@@ -370,7 +413,7 @@ const CreateInvoice: React.FC = () => {
                   <div key={index} className="border border-gray-200 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-4">
                       <span className="font-medium text-sm text-gray-700">
-                        Item {index + 1}
+                        {t.invoice.item || 'Item'} {index + 1}
                       </span>
                       {newInvoice.items.length > 1 && (
                         <button
@@ -378,7 +421,7 @@ const CreateInvoice: React.FC = () => {
                           onClick={() => removeInvoiceItem(index)}
                           className="text-red-600 hover:text-red-800 text-sm font-medium"
                         >
-                          ❌ Remove
+                          ❌ {t.common.delete || 'Remove'}
                         </button>
                       )}
                     </div>
@@ -386,26 +429,31 @@ const CreateInvoice: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
                       <div className="md:col-span-2">
                         <label className="block text-xs font-medium text-gray-600 mb-1">
-                          Description *
+                          {t.invoice.description || 'Description'} *
                         </label>
                         <input
                           type="text"
                           value={item.description}
                           onChange={(e) => updateInvoiceItem(index, 'description', e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-blue-500"
-                          placeholder="Service or product description"
+                          placeholder={t.invoice.descriptionPlaceholder || 'Service or product description'}
                           required
                         />
                       </div>
                       
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">
-                          Quantity *
+                          {t.invoice.quantity || 'Quantity'} *
                         </label>
                         <input
                           type="number"
                           value={item.quantity}
                           onChange={(e) => updateInvoiceItem(index, 'quantity', parseFloat(e.target.value) || 1)}
+                          onFocus={(e) => {
+                            if (parseFloat(e.target.value) === 0 || parseFloat(e.target.value) === 1) {
+                              e.target.value = '';
+                            }
+                          }}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-blue-500"
                           min="0.001"
                           step="0.001"
@@ -415,7 +463,7 @@ const CreateInvoice: React.FC = () => {
                       
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">
-                          Unit
+                          {t.invoice.unit || 'Unit'}
                         </label>
                         <select
                           value={item.unit}
@@ -430,12 +478,17 @@ const CreateInvoice: React.FC = () => {
                       
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">
-                          Unit Price (CHF) *
+                          {t.invoice.unitPrice || 'Unit Price'} (CHF) *
                         </label>
                         <input
                           type="number"
                           value={item.unitPrice}
                           onChange={(e) => updateInvoiceItem(index, 'unitPrice', parseFloat(e.target.value) || 0)}
+                          onFocus={(e) => {
+                            if (parseFloat(e.target.value) === 0) {
+                              e.target.value = '';
+                            }
+                          }}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-blue-500"
                           step="0.01"
                           min="0"
@@ -445,12 +498,17 @@ const CreateInvoice: React.FC = () => {
                       
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">
-                          Discount (%)
+                          {t.invoice.discount} (%)
                         </label>
                         <input
                           type="number"
                           value={item.discount}
                           onChange={(e) => updateInvoiceItem(index, 'discount', parseFloat(e.target.value) || 0)}
+                          onFocus={(e) => {
+                            if (parseFloat(e.target.value) === 0) {
+                              e.target.value = '';
+                            }
+                          }}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-blue-500"
                           step="0.1"
                           min="0"
@@ -460,7 +518,7 @@ const CreateInvoice: React.FC = () => {
                       
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">
-                          VAT Rate (%)
+                          {t.invoice.vat} (%)
                         </label>
                         <select
                           value={item.vatRate}
@@ -477,7 +535,7 @@ const CreateInvoice: React.FC = () => {
                     {/* Item Total Preview */}
                     <div className="mt-3 text-right">
                       <span className="text-sm text-gray-600">
-                        Item Total: CHF {calculateItemTotal(item).toFixed(2)}
+                        {t.invoice.itemTotal || 'Item Total'}: CHF {calculateItemTotal(item).toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -489,27 +547,27 @@ const CreateInvoice: React.FC = () => {
           {/* Totals Summary */}
           <Card>
             <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-medium text-gray-900">Invoice Summary</h2>
+              <h2 className="text-lg font-medium text-gray-900">{t.invoice.invoiceSummary || 'Invoice Summary'}</h2>
             </div>
             <div className="p-6">
               <div className="max-w-md ml-auto">
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Subtotal:</span>
+                    <span className="text-gray-600">{t.invoice.subtotal}:</span>
                     <span>CHF {subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">VAT:</span>
+                    <span className="text-gray-600">{t.invoice.vat}:</span>
                     <span>CHF {vatAmount.toFixed(2)}</span>
                   </div>
                   {newInvoice.discountAmount > 0 && (
                     <div className="flex justify-between text-red-600">
-                      <span>Discount:</span>
+                      <span>{t.invoice.discount}:</span>
                       <span>-CHF {newInvoice.discountAmount.toFixed(2)}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-lg font-semibold border-t pt-2">
-                    <span>Total:</span>
+                    <span>{t.invoice.total}:</span>
                     <span>CHF {total.toFixed(2)}</span>
                   </div>
                 </div>
@@ -524,14 +582,14 @@ const CreateInvoice: React.FC = () => {
               variant="outline"
               onClick={() => navigate('/invoices')}
             >
-              Cancel
+              {t.common.cancel}
             </Button>
             <Button
               type="submit"
               variant="primary"
               disabled={submitting}
             >
-              {submitting ? 'Creating Invoice...' : 'Create Invoice'}
+              {submitting ? (t.invoice.creating || 'Creating Invoice...') : t.invoice.create}
             </Button>
           </div>
         </form>

@@ -189,7 +189,7 @@ export const apiClient = {
 
   // Dashboard
   async getDashboardStats() {
-    const response = await api.get('/invoices/stats')
+    const response = await api.get('/dashboard/stats')
     return response.data
   },
 
@@ -292,6 +292,13 @@ export const apiClient = {
 
   async regenerateQuoteAcceptanceLink(quoteId: string) {
     const response = await api.post(`/quotes/${quoteId}/regenerate-link`)
+    return response.data
+  },
+
+  async downloadQuotePDF(id: string): Promise<Blob> {
+    const response = await api.get(`/quotes/${id}/pdf`, {
+      responseType: 'blob'
+    })
     return response.data
   },
 
@@ -475,6 +482,17 @@ export const apiClient = {
 
   async deleteLogo() {
     const response = await api.delete('/company/logo')
+    return response.data
+  },
+
+  // VAT Rates
+  async getVatRates() {
+    const response = await api.get('/vat-rates')
+    return response.data
+  },
+
+  async updateVatRates(vatRates: Array<{ name: string; rate: number; isDefault: boolean }>) {
+    const response = await api.put('/vat-rates', { vatRates })
     return response.data
   },
 

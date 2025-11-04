@@ -49,7 +49,6 @@ const Header: React.FC = () => {
             <a href="#" className="text-gray-500 hover:text-gray-900 font-medium">Invoices</a>
             <a href="#" className="text-gray-500 hover:text-gray-900 font-medium">Quotes</a>
             <a href="#" className="text-gray-500 hover:text-gray-900 font-medium">Customers</a>
-            <a href="#" className="text-gray-500 hover:text-gray-900 font-medium">Reports</a>
           </nav>
 
           {/* Right side */}
@@ -127,5 +126,6 @@ const Header: React.FC = () => {
 }
 
 export default Header
+
 
 

@@ -51,7 +51,7 @@ const Modal: React.FC<ModalProps> = ({
         </div>
         
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
+        <div className="p-6 flex flex-col" style={{ maxHeight: 'calc(90vh - 80px)' }}>
           {children}
         </div>
       </div>

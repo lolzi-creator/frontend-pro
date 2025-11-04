@@ -5,12 +5,14 @@ import Button from '../components/Button'
 import Modal from '../components/Modal'
 import { apiClient } from '../lib/api'
 import { useToast } from '../contexts/ToastContext'
+import { useLanguage } from '../contexts/LanguageContext'
 import ConfirmationModal from '../components/ConfirmationModal'
 
 const ExpenseDetail: React.FC = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const { showToast } = useToast()
+  const { t } = useLanguage()
   const [expense, setExpense] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [deleteModal, setDeleteModal] = useState(false)
@@ -36,7 +38,7 @@ const ExpenseDetail: React.FC = () => {
             vatAmount: (expenseData.vat_amount || 0) / 100
           })
         } else {
-          showToast({ type: 'error', title: 'Failed to load expense' })
+          showToast({ type: 'error', title: t.expense.failedToLoadExpense || 'Failed to load expense' })
           navigate('/expenses')
         }
       } catch (error) {
@@ -79,10 +81,10 @@ const ExpenseDetail: React.FC = () => {
       const response = await apiClient.deleteExpense(expense.id)
       
       if (response.success) {
-        showToast({ type: 'success', title: 'Expense deleted successfully' })
+        showToast({ type: 'success', title: t.expense.expenseDeletedSuccess || 'Expense deleted successfully' })
         navigate('/expenses')
       } else {
-        showToast({ type: 'error', title: 'Failed to delete expense', message: response.error })
+        showToast({ type: 'error', title: t.expense.failedToDeleteExpense || 'Failed to delete expense', message: response.error })
         setDeleteModal(false)
       }
     } catch (error: any) {
@@ -106,10 +108,10 @@ const ExpenseDetail: React.FC = () => {
       const response = await apiClient.updateExpense(expense.id, { status })
       
       if (response.success) {
-        showToast({ type: 'success', title: `Expense marked as ${status}` })
+        showToast({ type: 'success', title: t.expense.expenseMarkedAs?.replace('{{status}}', status) || `Expense marked as ${status}` })
         await fetchExpenseData()
       } else {
-        showToast({ type: 'error', title: 'Failed to update status', message: response.error })
+        showToast({ type: 'error', title: t.expense.failedToUpdateStatus || 'Failed to update status', message: response.error })
       }
     } catch (error: any) {
       console.error('Error updating status:', error)
@@ -131,12 +133,12 @@ const ExpenseDetail: React.FC = () => {
       const response = await apiClient.updateExpense(expense.id, { payment_date: paymentDate })
       
       if (response.success) {
-        showToast({ type: 'success', title: 'Payment date added successfully' })
+        showToast({ type: 'success', title: t.expense.paymentDateAddedSuccess || 'Payment date added successfully' })
         setShowPaymentDateModal(false)
         setPaymentDate('')
         await fetchExpenseData()
       } else {
-        showToast({ type: 'error', title: 'Failed to add payment date', message: response.error })
+        showToast({ type: 'error', title: t.expense.failedToAddPaymentDate || 'Failed to add payment date', message: response.error })
       }
     } catch (error: any) {
       console.error('Error adding payment date:', error)
@@ -162,10 +164,10 @@ const ExpenseDetail: React.FC = () => {
       })
       
       if (response.success) {
-        showToast({ type: 'success', title: 'Expense marked as paid' })
+        showToast({ type: 'success', title: t.expense.expenseMarkedAs?.replace('{{status}}', 'PAID') || 'Expense marked as paid' })
         await fetchExpenseData()
       } else {
-        showToast({ type: 'error', title: 'Failed to mark as paid', message: response.error })
+        showToast({ type: 'error', title: t.expense.failedToMarkAsPaid || 'Failed to mark as paid', message: response.error })
       }
     } catch (error: any) {
       console.error('Error marking as paid:', error)
@@ -204,12 +206,12 @@ const ExpenseDetail: React.FC = () => {
   const getPaymentMethodLabel = (method: string | undefined) => {
     if (!method) return 'N/A'
     const methods: Record<string, string> = {
-      'CASH': 'Cash',
-      'CREDIT_CARD': 'Credit Card',
-      'DEBIT_CARD': 'Debit Card',
-      'BANK_TRANSFER': 'Bank Transfer',
-      'CHECK': 'Check',
-      'OTHER': 'Other'
+      'CASH': t.expense.cash || 'Cash',
+      'CREDIT_CARD': t.expense.creditCard || 'Credit Card',
+      'DEBIT_CARD': t.expense.debitCard || 'Debit Card',
+      'BANK_TRANSFER': t.expense.bankTransfer || 'Bank Transfer',
+      'CHECK': t.expense.check || 'Check',
+      'OTHER': t.expense.other || 'Other'
     }
     return methods[method] || method
   }
@@ -220,7 +222,7 @@ const ExpenseDetail: React.FC = () => {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
-            <p className="text-gray-600 mt-4">Loading expense...</p>
+            <p className="text-gray-600 mt-4">{t.expense.loadingExpense || 'Loading expense...'}</p>
           </div>
         </div>
       </div>
@@ -231,8 +233,8 @@ const ExpenseDetail: React.FC = () => {
     return (
       <div className="p-8">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Expense not found</h2>
-          <Button onClick={() => navigate('/expenses')}>Back to Expenses</Button>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">{t.expense.expenseNotFound || 'Expense not found'}</h2>
+          <Button onClick={() => navigate('/expenses')}>{t.expense.backToExpenses || 'Back to Expenses'}</Button>
         </div>
       </div>
     )
@@ -254,13 +256,13 @@ const ExpenseDetail: React.FC = () => {
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
-              Back to Expenses
+              {t.expense.backToExpenses || 'Back to Expenses'}
             </Button>
             <div>
               <h2 className="text-3xl font-bold text-gray-900" style={{fontFamily: 'Poppins'}}>
                 {expense.title || 'Expense Details'}
               </h2>
-              <p className="text-gray-600">Expense Details</p>
+              <p className="text-gray-600">{t.expense.expenseDetails || 'Expense Details'}</p>
             </div>
           </div>
           <div className="flex items-center space-x-3">
@@ -275,7 +277,7 @@ const ExpenseDetail: React.FC = () => {
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
-              Delete
+              {t.expense.deleteExpense || 'Delete'}
             </Button>
           </div>
         </div>
@@ -287,33 +289,33 @@ const ExpenseDetail: React.FC = () => {
           {/* Basic Information */}
           <Card>
             <CardHeader>
-              <CardTitle>Basic Information</CardTitle>
+              <CardTitle>{t.expense.basicInformation || 'Basic Information'}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">Title</p>
+                  <p className="text-sm text-gray-500 mb-1">{t.expense.title}</p>
                   <p className="font-medium text-gray-900">{expense.title || 'N/A'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">Category</p>
+                  <p className="text-sm text-gray-500 mb-1">{t.expense.category}</p>
                   <p className="font-medium text-gray-900">{expense.category || 'N/A'}</p>
                 </div>
                 {expense.subcategory && (
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Subcategory</p>
+                    <p className="text-sm text-gray-500 mb-1">{t.expense.subcategory || 'Subcategory'}</p>
                     <p className="font-medium text-gray-900">{expense.subcategory}</p>
                   </div>
                 )}
                 {expense.vendorName && (
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Vendor/Supplier</p>
+                    <p className="text-sm text-gray-500 mb-1">{t.expense.vendorSupplier || 'Vendor/Supplier'}</p>
                     <p className="font-medium text-gray-900">{expense.vendorName}</p>
                   </div>
                 )}
                 {expense.description && (
                   <div className="md:col-span-2">
-                    <p className="text-sm text-gray-500 mb-1">Description</p>
+                    <p className="text-sm text-gray-500 mb-1">{t.expense.description}</p>
                     <p className="font-medium text-gray-900 whitespace-pre-wrap">{expense.description}</p>
                   </div>
                 )}
@@ -324,29 +326,29 @@ const ExpenseDetail: React.FC = () => {
           {/* Financial Information */}
           <Card>
             <CardHeader>
-              <CardTitle>Financial Information</CardTitle>
+              <CardTitle>{t.expense.financialInformation || 'Financial Information'}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Amount</p>
+                    <p className="text-sm text-gray-500 mb-1">{t.expense.amount}</p>
                     <p className="text-2xl font-bold text-gray-900">
                       {formatCurrency(expense.amount, expense.currency || 'CHF')}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">VAT Rate</p>
+                    <p className="text-sm text-gray-500 mb-1">{t.expense.vatRate || 'VAT Rate'}</p>
                     <p className="font-medium text-gray-900">{expense.vatRate || expense.vat_rate || 0}%</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">VAT Amount</p>
+                    <p className="text-sm text-gray-500 mb-1">{t.expense.vatAmount || 'VAT Amount'}</p>
                     <p className="font-medium text-gray-900">
                       {formatCurrency(expense.vatAmount, expense.currency || 'CHF')}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Total</p>
+                    <p className="text-sm text-gray-500 mb-1">{t.expense.total}</p>
                     <p className="text-2xl font-bold text-orange-600">
                       {formatCurrency(totalAmount, expense.currency || 'CHF')}
                     </p>
@@ -360,7 +362,7 @@ const ExpenseDetail: React.FC = () => {
                       readOnly
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
-                    <span className="ml-2 text-sm text-gray-700">Tax deductible</span>
+                    <span className="ml-2 text-sm text-gray-700">{t.expense.taxDeductible || 'Tax deductible'}</span>
                   </div>
                 </div>
               </div>
@@ -370,19 +372,19 @@ const ExpenseDetail: React.FC = () => {
           {/* Payment & Date Information */}
           <Card>
             <CardHeader>
-              <CardTitle>Payment & Date Information</CardTitle>
+              <CardTitle>{t.expense.paymentDateInformation || 'Payment & Date Information'}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">Expense Date</p>
+                  <p className="text-sm text-gray-500 mb-1">{t.expense.expenseDate || 'Expense Date'}</p>
                   <p className="font-medium text-gray-900">
                     {formatDate(expense.expenseDate || expense.expense_date)}
                   </p>
                 </div>
                 {expense.paymentDate || expense.payment_date ? (
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Payment Date</p>
+                    <p className="text-sm text-gray-500 mb-1">{t.expense.paymentDate || 'Payment Date'}</p>
                     <p className="font-medium text-gray-900">
                       {formatDate(expense.paymentDate || expense.payment_date)}
                     </p>
@@ -390,7 +392,7 @@ const ExpenseDetail: React.FC = () => {
                 ) : null}
                 {expense.paymentMethod || expense.payment_method ? (
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Payment Method</p>
+                    <p className="text-sm text-gray-500 mb-1">{t.expense.paymentMethod || 'Payment Method'}</p>
                     <p className="font-medium text-gray-900">
                       {getPaymentMethodLabel(expense.paymentMethod || expense.payment_method)}
                     </p>
@@ -404,13 +406,13 @@ const ExpenseDetail: React.FC = () => {
           {(expense.isRecurring || expense.is_recurring || expense.budgetCategory || expense.budget_category || expense.notes) && (
             <Card>
               <CardHeader>
-                <CardTitle>Additional Information</CardTitle>
+                <CardTitle>{t.expense.additionalInformation || 'Additional Information'}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {expense.isRecurring || expense.is_recurring ? (
                     <div>
-                      <p className="text-sm text-gray-500 mb-1">Recurring Expense</p>
+                      <p className="text-sm text-gray-500 mb-1">{t.expense.recurringExpense || 'Recurring Expense'}</p>
                       <p className="font-medium text-gray-900">
                         Yes {expense.recurringPeriod || expense.recurring_period ? `(${expense.recurringPeriod || expense.recurring_period})` : ''}
                       </p>
@@ -418,13 +420,13 @@ const ExpenseDetail: React.FC = () => {
                   ) : null}
                   {expense.budgetCategory || expense.budget_category ? (
                     <div>
-                      <p className="text-sm text-gray-500 mb-1">Budget Category</p>
+                      <p className="text-sm text-gray-500 mb-1">{t.expense.budgetCategory || 'Budget Category'}</p>
                       <p className="font-medium text-gray-900">{expense.budgetCategory || expense.budget_category}</p>
                     </div>
                   ) : null}
                   {expense.notes ? (
                     <div>
-                      <p className="text-sm text-gray-500 mb-1">Notes</p>
+                      <p className="text-sm text-gray-500 mb-1">{t.expense.notes || 'Notes'}</p>
                       <p className="font-medium text-gray-900 whitespace-pre-wrap">{expense.notes}</p>
                     </div>
                   ) : null}
@@ -437,7 +439,7 @@ const ExpenseDetail: React.FC = () => {
           {expense.attachments && expense.attachments.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>Receipts & Documents</CardTitle>
+                <CardTitle>{t.expense.receiptsDocuments || 'Receipts & Documents'}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
@@ -468,7 +470,7 @@ const ExpenseDetail: React.FC = () => {
                           <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                           </svg>
-                          Download
+                          {t.expense.download || 'Download'}
                         </Button>
                       ) : null}
                     </div>
@@ -484,31 +486,31 @@ const ExpenseDetail: React.FC = () => {
           {/* Summary Card */}
           <Card>
             <CardHeader>
-              <CardTitle>Summary</CardTitle>
+                <CardTitle>{t.expense.summary || 'Summary'}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">Status</p>
+                  <p className="text-sm text-gray-500 mb-1">{t.expense.status}</p>
                   <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(expense.status)}`}>
                     {expense.status || 'PENDING'}
                   </span>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">Total Amount</p>
+                  <p className="text-sm text-gray-500 mb-1">{t.expense.totalAmount || 'Total Amount'}</p>
                   <p className="text-2xl font-bold text-gray-900">
                     {formatCurrency(totalAmount, expense.currency || 'CHF')}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">Created</p>
+                  <p className="text-sm text-gray-500 mb-1">{t.expense.created || 'Created'}</p>
                   <p className="font-medium text-gray-900">
                     {formatDate(expense.createdAt || expense.created_at)}
                   </p>
                 </div>
                 {expense.updatedAt || expense.updated_at ? (
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Last Updated</p>
+                    <p className="text-sm text-gray-500 mb-1">{t.expense.lastUpdated || 'Last Updated'}</p>
                     <p className="font-medium text-gray-900">
                       {formatDate(expense.updatedAt || expense.updated_at)}
                     </p>
@@ -521,7 +523,7 @@ const ExpenseDetail: React.FC = () => {
           {/* Actions */}
           <Card>
             <CardHeader>
-              <CardTitle>Actions</CardTitle>
+              <CardTitle>{t.expense.actions}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -537,14 +539,14 @@ const ExpenseDetail: React.FC = () => {
                     {actionLoading === 'paid' ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Marking as Paid...
+                        {t.expense.markingAsPaid || 'Marking as Paid...'}
                       </>
                     ) : (
                       <>
                         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        Mark as Paid
+                        {t.expense.markAsPaid}
                       </>
                     )}
                   </Button>
@@ -563,7 +565,7 @@ const ExpenseDetail: React.FC = () => {
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
-                    Add Payment Date
+                    {t.expense.addPaymentDate || 'Add Payment Date'}
                   </Button>
                 )}
                 
@@ -580,7 +582,7 @@ const ExpenseDetail: React.FC = () => {
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
-                    Update Payment Date
+                    {t.expense.updatePaymentDate || 'Update Payment Date'}
                   </Button>
                 )}
 
@@ -594,13 +596,13 @@ const ExpenseDetail: React.FC = () => {
                       disabled={actionLoading !== null}
                     >
                       {actionLoading === 'status' ? (
-                        'Updating...'
+                        t.expense.updating || 'Updating...'
                       ) : (
                         <>
                           <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
-                          Approve
+                          {t.expense.approve}
                         </>
                       )}
                     </Button>
@@ -611,13 +613,13 @@ const ExpenseDetail: React.FC = () => {
                       disabled={actionLoading !== null}
                     >
                       {actionLoading === 'status' ? (
-                        'Updating...'
+                        t.expense.updating || 'Updating...'
                       ) : (
                         <>
                           <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                           </svg>
-                          Reject
+                          {t.expense.reject}
                         </>
                       )}
                     </Button>
@@ -632,13 +634,13 @@ const ExpenseDetail: React.FC = () => {
                     disabled={actionLoading !== null}
                   >
                     {actionLoading === 'status' ? (
-                      'Updating...'
+                      t.expense.updating || 'Updating...'
                     ) : (
                       <>
                         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        Mark as Pending
+                        {t.expense.markAsPending || 'Mark as Pending'}
                       </>
                     )}
                   </Button>
@@ -652,13 +654,13 @@ const ExpenseDetail: React.FC = () => {
                     disabled={actionLoading !== null}
                   >
                     {actionLoading === 'status' ? (
-                      'Updating...'
+                      t.expense.updating || 'Updating...'
                     ) : (
                       <>
                         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
-                        Reset to Pending
+                        {t.expense.resetToPending || 'Reset to Pending'}
                       </>
                     )}
                   </Button>
@@ -673,7 +675,7 @@ const ExpenseDetail: React.FC = () => {
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
-                    Edit Expense
+                    {t.expense.edit}
                   </Button>
                 </div>
                 
@@ -686,14 +688,14 @@ const ExpenseDetail: React.FC = () => {
                   {deleting ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600 mr-2"></div>
-                      Deleting...
+                      {t.expense.deleting || 'Deleting...'}
                     </>
                   ) : (
                     <>
                       <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>
-                      Delete Expense
+                      {t.expense.deleteExpense || 'Delete Expense'}
                     </>
                   )}
                 </Button>
@@ -710,13 +712,13 @@ const ExpenseDetail: React.FC = () => {
           setShowPaymentDateModal(false)
           setPaymentDate('')
         }}
-        title="Add Payment Date"
+        title={t.expense.addPaymentDate || 'Add Payment Date'}
         size="sm"
       >
         <div className="p-6">
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Payment Date *
+              {t.expense.paymentDate || 'Payment Date'} *
             </label>
             <input
               type="date"
@@ -735,14 +737,14 @@ const ExpenseDetail: React.FC = () => {
               }}
               disabled={actionLoading !== null}
             >
-              Cancel
+              {t.common.cancel}
             </Button>
             <Button
               variant="primary"
               onClick={handleAddPaymentDate}
               disabled={actionLoading !== null || !paymentDate}
             >
-              {actionLoading === 'payment-date' ? 'Saving...' : 'Save Payment Date'}
+              {actionLoading === 'payment-date' ? 'Saving...' : (t.expense.addPaymentDate || 'Save Payment Date')}
             </Button>
           </div>
         </div>
@@ -753,10 +755,10 @@ const ExpenseDetail: React.FC = () => {
         isOpen={deleteModal}
         onClose={() => setDeleteModal(false)}
         onConfirm={handleDelete}
-        title="Delete Expense"
-        message={`Are you sure you want to delete "${expense.title}"? This action cannot be undone and all associated files will be deleted.`}
-        confirmText={deleting ? "Deleting..." : "Delete"}
-        cancelText="Cancel"
+        title={t.expense.deleteExpense || 'Delete Expense'}
+        message={t.expense.deleteConfirmation?.replace('{{title}}', expense.title) || `Are you sure you want to delete "${expense.title}"? This action cannot be undone and all associated files will be deleted.`}
+        confirmText={deleting ? (t.expense.deleting || "Deleting...") : t.common.delete}
+        cancelText={t.common.cancel}
         type="danger"
       />
     </div>

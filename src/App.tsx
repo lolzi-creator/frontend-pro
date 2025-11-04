@@ -1,12 +1,14 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { ToastProvider } from './contexts/ToastContext'
+import { LanguageProvider } from './contexts/LanguageContext'
 import Layout from './components/layout/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
-import Dashboard from './pages/Dashboard'
+import Dashboard from './pages/SimpleDashboard'
 import Invoices from './pages/Invoices'
 import CreateInvoice from './pages/CreateInvoice'
+import EditInvoice from './pages/EditInvoice'
 import InvoiceDetail from './pages/InvoiceDetail'
 import Quotes from './pages/Quotes'
 import CreateQuote from './pages/CreateQuote'
@@ -15,6 +17,7 @@ import AcceptQuote from './pages/AcceptQuote'
 import AcceptInvitation from './pages/AcceptInvitation'
 import Customers from './pages/Customers'
 import CreateCustomer from './pages/CreateCustomer'
+import EditCustomer from './pages/EditCustomer'
 import CustomerDetail from './pages/CustomerDetail'
 import Payments from './pages/Payments'
 import PaymentDetail from './pages/PaymentDetail'
@@ -22,14 +25,13 @@ import Expenses from './pages/Expenses'
 import CreateExpense from './pages/CreateExpense'
 import ExpenseDetail from './pages/ExpenseDetail'
 import EditExpense from './pages/EditExpense'
-import Reports from './pages/Reports'
 import Settings from './pages/Settings'
-import ComponentDemo from './pages/ComponentDemo'
 
 function App() {
   return (
-    <ToastProvider>
-      <Router>
+    <LanguageProvider>
+      <ToastProvider>
+        <Router>
       <Routes>
         {/* Public routes */}
         <Route path="/login" element={<Login />} />
@@ -55,6 +57,11 @@ function App() {
         <Route path="/invoices/create" element={
           <ProtectedRoute>
             <Layout><CreateInvoice /></Layout>
+          </ProtectedRoute>
+        } />
+        <Route path="/invoices/:id/edit" element={
+          <ProtectedRoute>
+            <Layout><EditInvoice /></Layout>
           </ProtectedRoute>
         } />
         <Route path="/invoices/:id" element={
@@ -92,6 +99,11 @@ function App() {
             <Layout><CreateCustomer /></Layout>
           </ProtectedRoute>
         } />
+        <Route path="/customers/:id/edit" element={
+          <ProtectedRoute>
+            <Layout><EditCustomer /></Layout>
+          </ProtectedRoute>
+        } />
         <Route path="/customers/:id" element={
           <ProtectedRoute>
             <Layout><CustomerDetail /></Layout>
@@ -127,27 +139,18 @@ function App() {
             <Layout><ExpenseDetail /></Layout>
           </ProtectedRoute>
         } />
-        <Route path="/reports" element={
-          <ProtectedRoute>
-            <Layout><Reports /></Layout>
-          </ProtectedRoute>
-        } />
         <Route path="/settings" element={
           <ProtectedRoute>
             <Layout><Settings /></Layout>
-          </ProtectedRoute>
-        } />
-        <Route path="/components" element={
-          <ProtectedRoute>
-            <Layout><ComponentDemo /></Layout>
           </ProtectedRoute>
         } />
         
         {/* Catch all route - redirect to login */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
-      </Router>
-    </ToastProvider>
+        </Router>
+      </ToastProvider>
+    </LanguageProvider>
   )
 }
 

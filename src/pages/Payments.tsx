@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useToast } from '../contexts/ToastContext'
+import { useLanguage } from '../contexts/LanguageContext'
 import Button from '../components/Button'
 import TouchButton from '../components/TouchButton'
 import DataTable from '../components/DataTable'
@@ -41,6 +42,7 @@ interface Payment {
 const Payments: React.FC = () => {
   const navigate = useNavigate()
   const { showSuccess, showError, showWarning, showInfo } = useToast()
+  const { t } = useLanguage()
   const [filters, setFilters] = useState<Record<string, any>>({})
   const [payments, setPayments] = useState<Payment[]>([])
   const [loading, setLoading] = useState(true)
@@ -75,7 +77,7 @@ const Payments: React.FC = () => {
         }
       } catch (err: any) {
         console.error('[Payments] Error fetching payments:', err)
-        setError(err?.response?.data?.error || 'Failed to load payments')
+        setError(err?.response?.data?.error || t.payment.failedToLoad)
         setPayments([])
       } finally {
         setLoading(false)
@@ -96,9 +98,9 @@ const Payments: React.FC = () => {
       
       // Remove from local state
       setPayments(prev => prev.filter(p => p.id !== payment.id))
-      showSuccess('Payment Deleted', `Payment of ${payment.amount} ${payment.currency} has been deleted successfully.`)
+      showSuccess(t.payment.paymentDeleted, t.payment.paymentDeletedSuccess || `Payment of ${payment.amount} ${payment.currency} has been deleted successfully.`)
     } catch (error) {
-      showError('Delete Failed', 'Failed to delete payment. Please try again.')
+      showError(t.common.error, t.common.error)
     }
   }
 
@@ -114,12 +116,12 @@ const Payments: React.FC = () => {
     console.log('Payment created:', paymentData)
     // Add to local state
     setPayments(prev => [...prev, { ...paymentData, id: Date.now().toString() }])
-    showSuccess('Payment Added', 'Payment has been added successfully.')
+    showSuccess(t.payment.paymentAdded, t.payment.paymentAddedSuccess || 'Payment has been added successfully.')
   }
 
   const handlePaymentsImported = async (importData: any) => {
     console.log('Payments imported:', importData)
-    showSuccess('Payments Imported', `Successfully imported ${importData?.data?.payments?.length || 0} payments.`)
+    showSuccess(t.payment.paymentsImported, `${t.payment.successfullyImported || 'Successfully imported'} ${importData?.data?.payments?.length || 0} ${t.payment.import.toLowerCase()}.`)
     
     // Refresh payments list
     try {
@@ -136,7 +138,7 @@ const Payments: React.FC = () => {
   }
 
   const handleEditPayment = (payment: any) => {
-    showInfo('Edit Payment', `Edit functionality for payment ${payment.id} will be implemented soon.`)
+    showInfo(t.payment.editPayment, t.payment.editComingSoon?.replace('{{id}}', payment.id) || `Edit functionality for payment ${payment.id} will be implemented soon.`)
   }
 
   const openMatchPayment = (payment: Payment) => {
@@ -153,7 +155,7 @@ const Payments: React.FC = () => {
       } else if (Array.isArray(response)) {
         setPayments(response)
       }
-      showSuccess('Payment matched', 'Payment linked to invoice successfully.')
+      showSuccess(t.payment.paymentMatched, t.payment.paymentLinkedSuccess || 'Payment linked to invoice successfully.')
     } catch (e) {
       console.error('Error refreshing payments after match:', e)
     }
@@ -214,7 +216,7 @@ const Payments: React.FC = () => {
       <div className="p-4 lg:p-8 h-full overflow-y-auto">
         <Alert
           type="error"
-          title="Failed to Load Payments"
+          title={t.payment.failedToLoad}
           message={error}
           onClose={() => window.location.reload()}
         >
@@ -222,7 +224,7 @@ const Payments: React.FC = () => {
             onClick={() => window.location.reload()}
             className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
           >
-            Try Again
+            {t.payment.tryAgain}
           </button>
         </Alert>
       </div>
@@ -236,10 +238,10 @@ const Payments: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h2 className="text-xl lg:text-2xl font-bold text-gray-900 mb-1" style={{fontFamily: 'Poppins'}}>
-              Payments
+              {t.payment.title}
             </h2>
             <p className="text-gray-600 text-sm">
-              Track and manage your payments
+              {t.payment.subtitle}
             </p>
           </div>
           <div className="flex space-x-2">
@@ -251,7 +253,7 @@ const Payments: React.FC = () => {
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
               </svg>
-              Import
+              {t.payment.import}
             </TouchButton>
             <TouchButton
               variant="primary"
@@ -261,7 +263,7 @@ const Payments: React.FC = () => {
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
-              New Payment
+              {t.payment.newPayment}
             </TouchButton>
           </div>
         </div>
@@ -272,40 +274,40 @@ const Payments: React.FC = () => {
         filters={[
           {
             key: 'confidence',
-            label: 'Match Status',
+            label: t.payment.matchStatus || 'Match Status',
             type: 'select',
             options: [
-              { value: 'HIGH', label: 'High Confidence' },
-              { value: 'MEDIUM', label: 'Medium Confidence' },
-              { value: 'LOW', label: 'Low Confidence' },
-              { value: 'MANUAL', label: 'Manual' },
+              { value: 'HIGH', label: t.payment.highConfidence || 'High Confidence' },
+              { value: 'MEDIUM', label: t.payment.mediumConfidence || 'Medium Confidence' },
+              { value: 'LOW', label: t.payment.lowConfidence || 'Low Confidence' },
+              { value: 'MANUAL', label: t.payment.manual || 'Manual' },
             ]
           },
           {
             key: 'isMatched',
-            label: 'Matched',
+            label: t.payment.matched || 'Matched',
             type: 'select',
             options: [
-              { value: 'true', label: 'Matched' },
-              { value: 'false', label: 'Unmatched' },
+              { value: 'true', label: t.payment.matched || 'Matched' },
+              { value: 'false', label: t.payment.unmatched || 'Unmatched' },
             ]
           },
           {
             key: 'amount',
-            label: 'Amount',
+            label: t.payment.amount,
             type: 'number',
-            placeholder: 'Filter by amount (CHF)'
+            placeholder: t.payment.filterByAmount || 'Filter by amount (CHF)'
           },
           {
             key: 'valueDate',
-            label: 'Payment Date',
+            label: t.payment.paymentDate || 'Payment Date',
             type: 'dateRange'
           },
           {
             key: 'reference',
-            label: 'Reference',
+            label: t.payment.reference,
             type: 'text',
-            placeholder: 'Search by reference'
+            placeholder: t.payment.searchByReference || 'Search by reference'
           }
         ]}
         onApplyFilters={setFilters}
@@ -321,20 +323,20 @@ const Payments: React.FC = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No payments yet</h3>
-            <p className="text-gray-600 mb-4">Start by importing payments or adding them manually</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">{t.payment.noPaymentsYet || 'No payments yet'}</h3>
+            <p className="text-gray-600 mb-4">{t.payment.startByImporting || 'Start by importing payments or adding them manually'}</p>
             <div className="flex space-x-2 justify-center">
               <TouchButton
                 variant="outline"
-                onClick={() => console.log('Import payments')}
+                onClick={handleImportPayments}
               >
-                Import Payments
+                {t.payment.importPayments || 'Import Payments'}
               </TouchButton>
               <TouchButton
                 variant="primary"
-                onClick={() => console.log('Add payment')}
+                onClick={handleCreatePayment}
               >
-                Add Payment
+                {t.payment.addPayment || 'Add Payment'}
               </TouchButton>
             </div>
           </div>
@@ -349,7 +351,7 @@ const Payments: React.FC = () => {
             columns={[
               {
                 key: 'amount',
-                label: 'Payment',
+                label: t.payment.amount || 'Payment',
                 sortable: true,
                 priority: 'high',
                 render: (value, row: Payment) => (
@@ -362,7 +364,7 @@ const Payments: React.FC = () => {
                   <div>
                     <span className="font-medium text-gray-900">CHF {((row.amount || 0) / 100).toFixed(2)}</span>
                     <div className="text-sm text-gray-500">
-                      {row.isMatched ? 'Matched' : 'Unmatched'}
+                      {row.isMatched ? (t.payment.matched || 'Matched') : (t.payment.unmatched || 'Unmatched')}
                       {row.confidence && ` • ${row.confidence}`}
                     </div>
                   </div>
@@ -370,7 +372,7 @@ const Payments: React.FC = () => {
               },
               {
                 key: 'invoice',
-                label: 'Invoice',
+                label: t.payment.invoice,
                 sortable: true,
                 priority: 'high',
                 render: (value, row) => (
@@ -381,14 +383,14 @@ const Payments: React.FC = () => {
                         <div className="text-sm text-gray-500">{row.invoice.customer?.name || 'N/A'}</div>
                       </>
                     ) : (
-                      <span className="text-gray-500">Unmatched</span>
+                      <span className="text-gray-500">{t.payment.unmatched || 'Unmatched'}</span>
                     )}
                   </div>
                 )
               },
               {
                 key: 'valueDate',
-                label: 'Date',
+                label: t.payment.date,
                 sortable: true,
                 priority: 'medium',
                 render: (value) => (
@@ -397,7 +399,7 @@ const Payments: React.FC = () => {
               },
               {
                 key: 'reference',
-                label: 'Reference',
+                label: t.payment.reference,
                 sortable: true,
                 priority: 'low',
                 render: (value) => (
@@ -406,7 +408,7 @@ const Payments: React.FC = () => {
               },
               {
                 key: 'actions' as any,
-                label: 'Actions',
+                label: t.payment.actions,
                 render: (_, row) => (
                   <div className="flex items-center space-x-2">
                     <TouchButton
@@ -417,7 +419,7 @@ const Payments: React.FC = () => {
                         navigate(`/payments/${row.id}`)
                       }}
                     >
-                      View
+                      {t.payment.view}
                     </TouchButton>
                     <TouchButton
                       variant="primary"
@@ -427,7 +429,7 @@ const Payments: React.FC = () => {
                         openMatchPayment(row as any)
                       }}
                     >
-                      Match
+                      {t.payment.match}
                     </TouchButton>
                     <TouchButton
                       variant="outline"
@@ -438,15 +440,15 @@ const Payments: React.FC = () => {
                       }}
                       className="text-red-600 hover:text-red-700 hover:bg-red-50"
                     >
-                      Delete
+                      {t.common.delete}
                     </TouchButton>
                   </div>
                 )
               }
             ]}
-            title="Payment List"
+            title={t.payment.paymentList || 'Payment List'}
             searchable={true}
-            searchPlaceholder="Search payments..."
+            searchPlaceholder={t.payment.searchPayments || 'Search payments...'}
             pagination={true}
             pageSize={8}
             bulkActions={true}
@@ -471,13 +473,13 @@ const Payments: React.FC = () => {
                 render: (value, row: Payment) => (
                   <div className="flex items-center">
                     <span className="font-medium text-gray-900">CHF {((value || 0) / 100).toFixed(2)}</span>
-                    {row.isMatched && <span className="ml-2 text-green-600 text-xs">Matched</span>}
+                    {row.isMatched && <span className="ml-2 text-green-600 text-xs">{t.payment.matched || 'Matched'}</span>}
                   </div>
                 )
               },
               {
                 key: 'invoice',
-                label: 'Invoice',
+                label: t.payment.invoice,
                 sortable: true,
                 render: (value, row) => (
                   <div>
@@ -487,25 +489,25 @@ const Payments: React.FC = () => {
                         <div className="text-sm text-gray-500">{row.invoice.customer?.name || 'N/A'}</div>
                       </>
                     ) : (
-                      <span className="text-gray-500">Unmatched</span>
+                      <span className="text-gray-500">{t.payment.unmatched || 'Unmatched'}</span>
                     )}
                   </div>
                 )
               },
               {
                 key: 'confidence',
-                label: 'Status',
+                label: t.payment.status,
                 sortable: true,
                 render: (value, row: Payment) => (
                   <span className="text-gray-600">
-                    {row.isMatched ? 'Matched' : 'Unmatched'}
+                    {row.isMatched ? (t.payment.matched || 'Matched') : (t.payment.unmatched || 'Unmatched')}
                     {value && ` (${value})`}
                   </span>
                 )
               },
               {
                 key: 'valueDate',
-                label: 'Date',
+                label: t.payment.date,
                 sortable: true,
                 render: (value) => (
                   <span className="text-gray-600">{value ? new Date(value).toLocaleDateString() : 'N/A'}</span>
@@ -513,7 +515,7 @@ const Payments: React.FC = () => {
               },
               {
                 key: 'reference',
-                label: 'Reference',
+                label: t.payment.reference,
                 sortable: true,
                 render: (value) => (
                   <span className="text-gray-600">{value || 'N/A'}</span>
@@ -521,7 +523,7 @@ const Payments: React.FC = () => {
               },
               {
                 key: 'actions' as any,
-                label: 'Actions',
+                label: t.payment.actions,
                 render: (_, row) => (
                   <div className="flex items-center space-x-2">
                     <Button
@@ -532,7 +534,7 @@ const Payments: React.FC = () => {
                         navigate(`/payments/${row.id}`)
                       }}
                     >
-                      View
+                      {t.payment.view}
                     </Button>
                     <Button
                       variant="primary"
@@ -542,7 +544,7 @@ const Payments: React.FC = () => {
                         openMatchPayment(row as any)
                       }}
                     >
-                      Match
+                      {t.payment.match}
                     </Button>
                     <Button
                       variant="outline"
@@ -553,15 +555,15 @@ const Payments: React.FC = () => {
                       }}
                       className="text-red-600 hover:text-red-700 hover:bg-red-50"
                     >
-                      Delete
+                      {t.common.delete}
                     </Button>
                   </div>
                 )
               }
             ]}
-            title="Payment List"
+            title={t.payment.paymentList || 'Payment List'}
             searchable={true}
-            searchPlaceholder="Search payments..."
+            searchPlaceholder={t.payment.searchPayments || 'Search payments...'}
             pagination={true}
             pageSize={10}
             bulkActions={true}
@@ -580,10 +582,10 @@ const Payments: React.FC = () => {
           handleDeletePayment(deleteModal.payment)
           setDeleteModal({ isOpen: false, payment: null })
         }}
-        title="Delete Payment"
-        message={`Are you sure you want to delete this payment of ${deleteModal.payment?.amount} ${deleteModal.payment?.currency}? This action cannot be undone.`}
-        confirmText="Delete"
-        cancelText="Cancel"
+        title={t.payment.deletePayment || 'Delete Payment'}
+        message={t.payment.deleteConfirmation || `Are you sure you want to delete this payment? This action cannot be undone.`}
+        confirmText={t.common.delete}
+        cancelText={t.common.cancel}
         type="danger"
       />
 

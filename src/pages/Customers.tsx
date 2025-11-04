@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useToast } from '../contexts/ToastContext'
+import { useLanguage } from '../contexts/LanguageContext'
 import { useCustomers } from '../hooks/useCustomers'
 import Button from '../components/Button'
 import TouchButton from '../components/TouchButton'
@@ -13,6 +14,7 @@ import { TableSkeleton, Alert, LoadingSpinner } from '../components'
 const Customers: React.FC = () => {
   const navigate = useNavigate()
   const { showSuccess, showError, showWarning, showInfo } = useToast()
+  const { t } = useLanguage()
   const [filters, setFilters] = useState<Record<string, any>>({})
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
@@ -37,9 +39,9 @@ const Customers: React.FC = () => {
       await new Promise(resolve => setTimeout(resolve, 1000))
       
       refetch()
-      showSuccess('Customer Deleted', `${customer.name} has been deleted successfully.`)
+      showSuccess(t.customer.customerDeleted, `${customer.name} ${t.common.success.toLowerCase()}.`)
     } catch (error) {
-      showError('Delete Failed', 'Failed to delete customer. Please try again.')
+      showError(t.common.error, t.common.error)
     }
   }
 
@@ -49,7 +51,7 @@ const Customers: React.FC = () => {
 
 
   const handleEditCustomer = (customer: any) => {
-    showInfo('Edit Customer', `Edit functionality for ${customer.name} will be implemented soon.`)
+    showInfo(t.customer.edit, t.customer.editComingSoon?.replace('{{name}}', customer.name) || `Edit functionality for ${customer.name} will be implemented soon.`)
   }
 
   if (loading) {
@@ -75,19 +77,19 @@ const Customers: React.FC = () => {
   if (error) {
     return (
       <div className="p-4 lg:p-8 h-full overflow-y-auto">
-        <Alert
-          type="error"
-          title="Failed to Load Customers"
-          message={error}
-          onClose={() => refetch()}
-        >
-          <button
-            onClick={() => refetch()}
-            className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          <Alert
+            type="error"
+            title={t.customer.failedToLoad}
+            message={error}
+            onClose={() => refetch()}
           >
-            Try Again
-          </button>
-        </Alert>
+            <button
+              onClick={() => refetch()}
+              className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              {t.customer.tryAgain}
+            </button>
+          </Alert>
       </div>
     )
   }
@@ -99,10 +101,10 @@ const Customers: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h2 className="text-xl lg:text-2xl font-bold text-gray-900 mb-1" style={{fontFamily: 'Poppins'}}>
-              Customers
+              {t.customer.title}
             </h2>
             <p className="text-gray-600 text-sm">
-              Manage your customer relationships
+              {t.customer.subtitle}
             </p>
           </div>
           <TouchButton
@@ -115,7 +117,7 @@ const Customers: React.FC = () => {
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
-            New Customer
+            {t.customer.newCustomer}
           </TouchButton>
         </div>
       </div>
@@ -125,30 +127,30 @@ const Customers: React.FC = () => {
         filters={[
           {
             key: 'isActive',
-            label: 'Status',
+            label: t.invoice.status || 'Status',
             type: 'select',
             options: [
-              { value: 'true', label: 'Active' },
-              { value: 'false', label: 'Inactive' },
+              { value: 'true', label: t.customer.active || 'Active' },
+              { value: 'false', label: t.customer.inactive || 'Inactive' },
             ]
           },
           {
             key: 'country',
-            label: 'Country',
+            label: t.customer.country,
             type: 'text',
-            placeholder: 'Filter by country'
+            placeholder: t.customer.filterByCountry || 'Filter by country'
           },
           {
             key: 'paymentTerms',
-            label: 'Payment Terms',
+            label: t.customer.paymentTerms,
             type: 'number',
-            placeholder: 'Filter by payment terms (days)'
+            placeholder: t.customer.filterByPaymentTerms || 'Filter by payment terms (days)'
           },
           {
             key: 'search',
-            label: 'Search',
+            label: t.common.search,
             type: 'text',
-            placeholder: 'Search by name, company, or email'
+            placeholder: t.customer.searchPlaceholder || 'Search by name, company, or email'
           }
         ]}
         onApplyFilters={setFilters}
@@ -164,13 +166,13 @@ const Customers: React.FC = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No customers yet</h3>
-            <p className="text-gray-600 mb-4">Get started by adding your first customer</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">{t.customer.noCustomersYet || 'No customers yet'}</h3>
+            <p className="text-gray-600 mb-4">{t.customer.getStartedAdding || 'Get started by adding your first customer'}</p>
             <TouchButton
               variant="primary"
-              onClick={() => console.log('Create first customer')}
+              onClick={handleCreateCustomer}
             >
-              Add Customer
+              {t.customer.addCustomer || t.customer.newCustomer}
             </TouchButton>
           </div>
         </div>
@@ -184,7 +186,7 @@ const Customers: React.FC = () => {
             columns={[
               {
                 key: 'name',
-                label: 'Customer',
+                label: t.customer.title,
                 sortable: true,
                 priority: 'high',
                 render: (value, row) => (
@@ -204,14 +206,14 @@ const Customers: React.FC = () => {
                     <span className={`ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                       row.isActive ? 'bg-success-100 text-success-800' : 'bg-gray-100 text-gray-800'
                     }`}>
-                      {row.isActive ? 'Active' : 'Inactive'}
+                      {row.isActive ? (t.customer.active || 'Active') : (t.customer.inactive || 'Inactive')}
                     </span>
                   </div>
                 )
               },
               {
                 key: 'email',
-                label: 'Email',
+                label: t.customer.email,
                 sortable: true,
                 priority: 'medium',
                 render: (value) => (
@@ -220,7 +222,7 @@ const Customers: React.FC = () => {
               },
               {
                 key: 'city',
-                label: 'Location',
+                label: t.customer.location || 'Location',
                 sortable: true,
                 priority: 'medium',
                 render: (value, row) => (
@@ -229,16 +231,16 @@ const Customers: React.FC = () => {
               },
               {
                 key: 'paymentTerms',
-                label: 'Payment Terms',
+                label: t.customer.paymentTerms,
                 sortable: true,
                 priority: 'low',
                 render: (value) => (
-                  <span className="text-gray-600">{value} days</span>
+                  <span className="text-gray-600">{value} {t.customer.days || 'days'}</span>
                 )
               },
               {
                 key: 'actions' as any,
-                label: 'Actions',
+                label: t.customer.actions,
                 render: (_, row) => (
                   <div className="flex items-center space-x-2">
                     <TouchButton
@@ -249,7 +251,7 @@ const Customers: React.FC = () => {
                         navigate(`/customers/${row.id}`)
                       }}
                     >
-                      View
+                      {t.customer.view}
                     </TouchButton>
                     <TouchButton
                       variant="primary"
@@ -259,7 +261,7 @@ const Customers: React.FC = () => {
                         handleEditCustomer(row)
                       }}
                     >
-                      Edit
+                      {t.customer.edit}
                     </TouchButton>
                     <TouchButton
                       variant="outline"
@@ -270,15 +272,15 @@ const Customers: React.FC = () => {
                       }}
                       className="text-red-600 hover:text-red-700 hover:bg-red-50"
                     >
-                      Delete
+                      {t.common.delete}
                     </TouchButton>
                   </div>
                 )
               }
             ]}
-            title="Customer List"
+            title={t.customer.customerList || 'Customer List'}
             searchable={true}
-            searchPlaceholder="Search customers..."
+            searchPlaceholder={t.customer.searchCustomers || 'Search customers...'}
             pagination={true}
             pageSize={8}
             bulkActions={true}
@@ -298,7 +300,7 @@ const Customers: React.FC = () => {
             columns={[
               {
                 key: 'name',
-                label: 'Customer',
+                label: t.customer.title,
                 sortable: true,
                 render: (value, row) => (
                   <div>
@@ -311,7 +313,7 @@ const Customers: React.FC = () => {
               },
               {
                 key: 'email',
-                label: 'Email',
+                label: t.customer.email,
                 sortable: true,
                 render: (value) => (
                   <span className="text-gray-600">{value || 'N/A'}</span>
@@ -319,7 +321,7 @@ const Customers: React.FC = () => {
               },
               {
                 key: 'city',
-                label: 'Location',
+                label: t.customer.location || 'Location',
                 sortable: true,
                 render: (value, row) => (
                   <span className="text-gray-600">{value}, {row.country}</span>
@@ -327,27 +329,27 @@ const Customers: React.FC = () => {
               },
               {
                 key: 'paymentTerms',
-                label: 'Payment Terms',
+                label: t.customer.paymentTerms,
                 sortable: true,
                 render: (value) => (
-                  <span className="text-gray-600">{value} days</span>
+                  <span className="text-gray-600">{value} {t.customer.days || 'days'}</span>
                 )
               },
               {
                 key: 'isActive',
-                label: 'Status',
+                label: t.customer.status || 'Status',
                 sortable: true,
                 render: (value) => (
                   <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                     value ? 'bg-success-100 text-success-800' : 'bg-gray-100 text-gray-800'
                   }`}>
-                    {value ? 'Active' : 'Inactive'}
+                    {value ? (t.customer.active || 'Active') : (t.customer.inactive || 'Inactive')}
                   </span>
                 )
               },
               {
                 key: 'actions' as any,
-                label: 'Actions',
+                label: t.customer.actions,
                 render: (_, row) => (
                   <div className="flex items-center space-x-2">
                     <Button
@@ -358,7 +360,7 @@ const Customers: React.FC = () => {
                         navigate(`/customers/${row.id}`)
                       }}
                     >
-                      View
+                      {t.customer.view}
                     </Button>
                     <Button
                       variant="primary"
@@ -368,7 +370,7 @@ const Customers: React.FC = () => {
                         handleEditCustomer(row)
                       }}
                     >
-                      Edit
+                      {t.customer.edit}
                     </Button>
                     <Button
                       variant="outline"
@@ -379,15 +381,15 @@ const Customers: React.FC = () => {
                       }}
                       className="text-red-600 hover:text-red-700 hover:bg-red-50"
                     >
-                      Delete
+                      {t.common.delete}
                     </Button>
                   </div>
                 )
               }
             ]}
-            title="Customer List"
+            title={t.customer.customerList || 'Customer List'}
             searchable={true}
-            searchPlaceholder="Search customers..."
+            searchPlaceholder={t.customer.searchCustomers || 'Search customers...'}
             pagination={true}
             pageSize={10}
             bulkActions={true}
@@ -405,10 +407,10 @@ const Customers: React.FC = () => {
           handleDeleteCustomer(deleteModal.customer)
           setDeleteModal({ isOpen: false, customer: null })
         }}
-        title="Delete Customer"
-        message={`Are you sure you want to delete ${deleteModal.customer?.name}? This action cannot be undone.`}
-        confirmText="Delete"
-        cancelText="Cancel"
+        title={t.customer.delete}
+        message={t.customer.deleteConfirmation?.replace('{{name}}', deleteModal.customer?.name || '') || `Are you sure you want to delete ${deleteModal.customer?.name}? This action cannot be undone.`}
+        confirmText={t.common.delete}
+        cancelText={t.common.cancel}
         type="danger"
       />
 

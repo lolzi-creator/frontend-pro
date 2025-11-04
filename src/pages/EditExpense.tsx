@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { apiClient } from '../lib/api'
 import { useToast } from '../contexts/ToastContext'
+import { useLanguage } from '../contexts/LanguageContext'
 import Card from '../components/Card'
 import Button from '../components/Button'
 import FileUpload from '../components/FileUpload'
@@ -29,12 +30,19 @@ const EditExpense: React.FC = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const { showToast } = useToast()
+  const { t } = useLanguage()
   
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [uploadingFiles, setUploadingFiles] = useState(false)
   const [categories, setCategories] = useState<string[]>([])
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [vatRates, setVatRates] = useState<Array<{ value: number; label: string }>>([
+    { value: 7.7, label: t.expense.vatStandard || '7.7% (Standard)' },
+    { value: 2.5, label: t.expense.vatReduced || '2.5% (Reduced)' },
+    { value: 3.7, label: t.expense.vatAccommodation || '3.7% (Accommodation)' },
+    { value: 0, label: t.expense.vatExempt || '0% (Exempt)' }
+  ])
   
   const [expense, setExpense] = useState<ExpenseFormData>({
     title: '',
@@ -55,34 +63,44 @@ const EditExpense: React.FC = () => {
     notes: ''
   })
 
-  const vatRates = [
-    { value: 7.7, label: '7.7% (Standard)' },
-    { value: 2.5, label: '2.5% (Reduziert)' },
-    { value: 3.7, label: '3.7% (Beherbergung)' },
-    { value: 0, label: '0% (Befreit)' }
-  ]
-
   const paymentMethods = [
-    { value: 'CASH', label: 'Cash' },
-    { value: 'CREDIT_CARD', label: 'Credit Card' },
-    { value: 'DEBIT_CARD', label: 'Debit Card' },
-    { value: 'BANK_TRANSFER', label: 'Bank Transfer' },
-    { value: 'CHECK', label: 'Check' },
-    { value: 'OTHER', label: 'Other' }
+    { value: 'CASH', label: t.expense.cash || 'Cash' },
+    { value: 'CREDIT_CARD', label: t.expense.creditCard || 'Credit Card' },
+    { value: 'DEBIT_CARD', label: t.expense.debitCard || 'Debit Card' },
+    { value: 'BANK_TRANSFER', label: t.expense.bankTransfer || 'Bank Transfer' },
+    { value: 'CHECK', label: t.expense.check || 'Check' },
+    { value: 'OTHER', label: t.expense.other || 'Other' }
   ]
 
   const recurringPeriods = [
-    { value: 'monthly', label: 'Monthly' },
-    { value: 'quarterly', label: 'Quarterly' },
-    { value: 'yearly', label: 'Yearly' }
+    { value: 'monthly', label: t.expense.monthly || 'Monthly' },
+    { value: 'quarterly', label: t.expense.quarterly || 'Quarterly' },
+    { value: 'yearly', label: t.expense.yearly || 'Yearly' }
   ]
 
   useEffect(() => {
+    loadVatRates()
     if (id) {
       loadCategories()
       loadExpense()
     }
   }, [id])
+
+  const loadVatRates = async () => {
+    try {
+      const response = await apiClient.getVatRates()
+      if (response.success && response.data?.vatRates && response.data.vatRates.length > 0) {
+        const formattedRates = response.data.vatRates.map((rate: any) => ({
+          value: rate.rate,
+          label: `${rate.rate}% (${rate.name})`
+        }))
+        setVatRates(formattedRates)
+      }
+    } catch (error) {
+      console.error('Error loading VAT rates:', error)
+      // Use default rates if API fails
+    }
+  }
 
   const loadCategories = async () => {
     try {
@@ -126,7 +144,7 @@ const EditExpense: React.FC = () => {
           notes: expenseData.notes || ''
         })
       } else {
-        showToast({ type: 'error', title: 'Failed to load expense' })
+        showToast({ type: 'error', title: t.expense.failedToLoadExpense || 'Failed to load expense' })
         navigate('/expenses')
       }
     } catch (error) {
@@ -165,22 +183,22 @@ const EditExpense: React.FC = () => {
     
     // Validation
     if (!expense.title.trim()) {
-      showToast({ type: 'error', title: 'Title is required' })
+      showToast({ type: 'error', title: t.expense.titleRequired || 'Title is required' })
       return
     }
 
     if (!expense.category) {
-      showToast({ type: 'error', title: 'Category is required' })
+      showToast({ type: 'error', title: t.expense.categoryRequired || 'Category is required' })
       return
     }
 
     if (!expense.amount || expense.amount <= 0) {
-      showToast({ type: 'error', title: 'Please enter a valid amount' })
+      showToast({ type: 'error', title: t.expense.validAmountRequired || 'Please enter a valid amount' })
       return
     }
 
     if (!expense.expenseDate) {
-      showToast({ type: 'error', title: 'Expense date is required' })
+      showToast({ type: 'error', title: t.expense.expenseDateRequired || 'Expense date is required' })
       return
     }
 
@@ -260,8 +278,8 @@ const EditExpense: React.FC = () => {
             console.error('Error uploading files:', fileError)
             showToast({ 
               type: 'warning', 
-              title: 'Expense updated but files failed to upload',
-              message: 'You can add files later from the expense detail page'
+              title: t.expense.expenseUpdatedFilesFailed || 'Expense updated but files failed to upload',
+              message: t.expense.addFilesLater || 'You can add files later from the expense detail page'
             })
           } finally {
             setUploadingFiles(false)
@@ -270,21 +288,21 @@ const EditExpense: React.FC = () => {
         
         showToast({ 
           type: 'success', 
-          title: 'Expense updated successfully!'
+          title: t.expense.expenseUpdatedSuccess || 'Expense updated successfully!'
         })
         
         // Navigate back to expense detail
         navigate(`/expenses/${id}`)
       } else {
-        showToast({ type: 'error', title: 'Failed to update expense', message: response.error })
+        showToast({ type: 'error', title: t.expense.failedToUpdateExpense || 'Failed to update expense', message: response.error })
       }
     } catch (error: any) {
       console.error('Error updating expense:', error)
-      showToast({ 
-        type: 'error', 
-        title: 'Failed to update expense',
-        message: error.response?.data?.error || 'An unexpected error occurred'
-      })
+        showToast({ 
+          type: 'error', 
+          title: t.expense.failedToUpdateExpense || 'Failed to update expense',
+          message: error.response?.data?.error || 'An unexpected error occurred'
+        })
     } finally {
       setSubmitting(false)
     }
@@ -297,7 +315,7 @@ const EditExpense: React.FC = () => {
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
-              <p className="text-gray-600 mt-4">Loading expense...</p>
+              <p className="text-gray-600 mt-4">{t.expense.loadingExpenseData || 'Loading expense...'}</p>
             </div>
           </div>
         </div>
@@ -309,48 +327,48 @@ const EditExpense: React.FC = () => {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Edit Expense</h1>
-          <p className="mt-2 text-gray-600">Update the expense details below</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t.expense.edit}</h1>
+          <p className="mt-2 text-gray-600">{t.expense.updateExpenseDetails || 'Update the expense details below'}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Basic Information */}
           <Card>
             <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-medium text-gray-900">Basic Information</h2>
+              <h2 className="text-lg font-medium text-gray-900">{t.expense.basicInfo || 'Basic Information'}</h2>
             </div>
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Title *
+                    {t.expense.title} *
                   </label>
                   <input
                     type="text"
                     value={expense.title}
                     onChange={(e) => handleChange('title', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="e.g., Office Supplies Purchase"
+                    placeholder={t.expense.titlePlaceholder || 'e.g., Office Supplies Purchase'}
                     required
                   />
                 </div>
                 
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Description
+                    {t.expense.description}
                   </label>
                   <textarea
                     value={expense.description}
                     onChange={(e) => handleChange('description', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     rows={3}
-                    placeholder="Additional details about this expense..."
+                    placeholder={t.expense.descriptionPlaceholder || 'Additional details about this expense...'}
                   />
                 </div>
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Category *
+                    {t.expense.category} *
                   </label>
                   <select
                     value={expense.category}
@@ -358,7 +376,7 @@ const EditExpense: React.FC = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   >
-                    <option value="">Select Category</option>
+                    <option value="">{t.expense.selectCategory || 'Select Category'}</option>
                     {categories.map(cat => (
                       <option key={cat} value={cat}>{cat}</option>
                     ))}
@@ -367,27 +385,27 @@ const EditExpense: React.FC = () => {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Subcategory
+                    {t.expense.subcategory || 'Subcategory'}
                   </label>
                   <input
                     type="text"
                     value={expense.subcategory}
                     onChange={(e) => handleChange('subcategory', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Optional"
+                    placeholder={t.expense.optional || 'Optional'}
                   />
                 </div>
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Vendor/Supplier
+                    {t.expense.vendorSupplier || 'Vendor/Supplier'}
                   </label>
                   <input
                     type="text"
                     value={expense.vendorName}
                     onChange={(e) => handleChange('vendorName', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Company or person name"
+                    placeholder={t.expense.vendorPlaceholder || 'Company or person name'}
                   />
                 </div>
               </div>
@@ -397,18 +415,23 @@ const EditExpense: React.FC = () => {
           {/* Financial Information */}
           <Card>
             <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-medium text-gray-900">Financial Information</h2>
+              <h2 className="text-lg font-medium text-gray-900">{t.expense.financialInfo || 'Financial Information'}</h2>
             </div>
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Amount (CHF) *
+                    {t.expense.amountCHF || 'Amount (CHF)'} *
                   </label>
                   <input
                     type="number"
                     value={expense.amount || ''}
                     onChange={(e) => handleChange('amount', parseFloat(e.target.value) || 0)}
+                    onFocus={(e) => {
+                      if (parseFloat(e.target.value) === 0) {
+                        e.target.value = '';
+                      }
+                    }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     step="0.01"
                     min="0"
@@ -418,7 +441,7 @@ const EditExpense: React.FC = () => {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    VAT Rate (%)
+                    {t.expense.vatRate || 'VAT Rate'} (%)
                   </label>
                   <select
                     value={expense.vatRate}
@@ -433,7 +456,7 @@ const EditExpense: React.FC = () => {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Currency
+                    {t.expense.currency}
                   </label>
                   <select
                     value={expense.currency}
@@ -450,15 +473,15 @@ const EditExpense: React.FC = () => {
               <div className="mt-6 p-4 bg-gray-50 rounded-lg">
                 <div className="grid grid-cols-3 gap-4 text-sm">
                   <div>
-                    <span className="text-gray-600">Subtotal:</span>
+                    <span className="text-gray-600">{t.expense.subtotal || 'Subtotal:'}</span>
                     <span className="ml-2 font-medium">{expense.currency} {expense.amount.toFixed(2)}</span>
                   </div>
                   <div>
-                    <span className="text-gray-600">VAT ({expense.vatRate}%):</span>
+                    <span className="text-gray-600">{t.expense.vatRate || 'VAT'} ({expense.vatRate}%):</span>
                     <span className="ml-2 font-medium">{expense.currency} {calculateVATAmount().toFixed(2)}</span>
                   </div>
                   <div>
-                    <span className="text-gray-600 font-semibold">Total:</span>
+                    <span className="text-gray-600 font-semibold">{t.expense.total}:</span>
                     <span className="ml-2 font-bold text-lg">{expense.currency} {calculateTotal().toFixed(2)}</span>
                   </div>
                 </div>
@@ -472,7 +495,7 @@ const EditExpense: React.FC = () => {
                     onChange={(e) => handleChange('isTaxDeductible', e.target.checked)}
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
-                  <span className="ml-2 text-sm text-gray-700">Tax deductible</span>
+                  <span className="ml-2 text-sm text-gray-700">{t.expense.taxDeductible || 'Tax deductible'}</span>
                 </label>
               </div>
             </div>
@@ -481,13 +504,13 @@ const EditExpense: React.FC = () => {
           {/* Payment Details */}
           <Card>
             <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-medium text-gray-900">Payment Details</h2>
+              <h2 className="text-lg font-medium text-gray-900">{t.expense.paymentDetails || 'Payment Details'}</h2>
             </div>
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Expense Date *
+                    {t.expense.expenseDate || 'Expense Date'} *
                   </label>
                   <input
                     type="date"
@@ -500,7 +523,7 @@ const EditExpense: React.FC = () => {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Payment Date
+                    {t.expense.paymentDate || 'Payment Date'}
                   </label>
                   <input
                     type="date"
@@ -512,14 +535,14 @@ const EditExpense: React.FC = () => {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Payment Method
+                    {t.expense.paymentMethod || 'Payment Method'}
                   </label>
                   <select
                     value={expense.paymentMethod}
                     onChange={(e) => handleChange('paymentMethod', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <option value="">Select Method</option>
+                    <option value="">{t.expense.selectCategory || 'Select Method'}</option>
                     {paymentMethods.map(method => (
                       <option key={method.value} value={method.value}>{method.label}</option>
                     ))}
@@ -532,7 +555,7 @@ const EditExpense: React.FC = () => {
           {/* Additional Options */}
           <Card>
             <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-medium text-gray-900">Additional Options</h2>
+              <h2 className="text-lg font-medium text-gray-900">{t.expense.additionalOptions || 'Additional Options'}</h2>
             </div>
             <div className="p-6">
               <div className="space-y-6">
@@ -543,20 +566,20 @@ const EditExpense: React.FC = () => {
                     onChange={(e) => handleChange('isRecurring', e.target.checked)}
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
-                  <span className="ml-2 text-sm text-gray-700">This is a recurring expense</span>
+                  <span className="ml-2 text-sm text-gray-700">{t.expense.recurringExpenseLabel || 'This is a recurring expense'}</span>
                 </div>
                 
                 {expense.isRecurring && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Recurring Period
+                      {t.expense.recurringPeriod || 'Recurring Period'}
                     </label>
                     <select
                       value={expense.recurringPeriod}
                       onChange={(e) => handleChange('recurringPeriod', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
-                      <option value="">Select Period</option>
+                      <option value="">{t.expense.selectPeriod || 'Select Period'}</option>
                       {recurringPeriods.map(period => (
                         <option key={period.value} value={period.value}>{period.label}</option>
                       ))}
@@ -566,27 +589,27 @@ const EditExpense: React.FC = () => {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Budget Category (Optional)
+                    {t.expense.budgetCategory || 'Budget Category'} ({t.expense.optional || 'Optional'})
                   </label>
                   <input
                     type="text"
                     value={expense.budgetCategory}
                     onChange={(e) => handleChange('budgetCategory', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="For budget tracking"
+                    placeholder={t.expense.budgetCategoryPlaceholder || 'For budget tracking'}
                   />
                 </div>
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Notes
+                    {t.expense.notes || 'Notes'}
                   </label>
                   <textarea
                     value={expense.notes}
                     onChange={(e) => handleChange('notes', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     rows={3}
-                    placeholder="Additional notes about this expense..."
+                    placeholder={t.expense.notesPlaceholder || 'Additional notes about this expense...'}
                   />
                 </div>
               </div>
@@ -596,7 +619,7 @@ const EditExpense: React.FC = () => {
           {/* File Upload */}
           <Card>
             <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-medium text-gray-900">Add More Receipts & Documents</h2>
+              <h2 className="text-lg font-medium text-gray-900">{t.expense.addMoreReceipts || 'Add More Receipts & Documents'}</h2>
             </div>
             <div className="p-6">
               <FileUpload
@@ -608,7 +631,7 @@ const EditExpense: React.FC = () => {
               {selectedFiles.length > 0 && (
                 <div className="mt-4">
                   <p className="text-sm text-gray-600 mb-2">
-                    {selectedFiles.length} new file(s) selected
+                    {t.expense.filesSelected?.replace('{{count}}', selectedFiles.length.toString()) || `${selectedFiles.length} new file(s) selected`}
                   </p>
                   <ul className="list-disc list-inside text-sm text-gray-600">
                     {selectedFiles.map((file, index) => (
@@ -627,7 +650,7 @@ const EditExpense: React.FC = () => {
               variant="outline"
               onClick={() => navigate(`/expenses/${id}`)}
             >
-              Cancel
+              {t.common.cancel}
             </Button>
             <Button
               type="submit"
@@ -635,8 +658,8 @@ const EditExpense: React.FC = () => {
               disabled={submitting || uploadingFiles}
             >
               {submitting || uploadingFiles 
-                ? (uploadingFiles ? 'Uploading Files...' : 'Updating Expense...') 
-                : 'Update Expense'}
+                ? (uploadingFiles ? (t.expense.uploadingFiles || 'Uploading Files...') : (t.expense.updatingExpense || 'Updating Expense...')) 
+                : t.expense.edit}
             </Button>
           </div>
         </form>

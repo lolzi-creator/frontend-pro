@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useToast } from '../contexts/ToastContext'
+import { useLanguage } from '../contexts/LanguageContext'
 import { apiClient } from '../lib/api'
 import Button from '../components/Button'
 import TouchButton from '../components/TouchButton'
@@ -39,6 +40,7 @@ interface Quote {
 const Quotes: React.FC = () => {
   const navigate = useNavigate()
   const { showSuccess, showError, showWarning, showInfo } = useToast()
+  const { t } = useLanguage()
   const [filters, setFilters] = useState<Record<string, any>>({})
   const [quotes, setQuotes] = useState<Quote[]>([])
   const [loading, setLoading] = useState(true)
@@ -57,11 +59,11 @@ const Quotes: React.FC = () => {
         if (response.success) {
           setQuotes(response.data.quotes || [])
         } else {
-          setError('Failed to load quotes')
+          setError(t.quote.failedToLoad)
         }
       } catch (err) {
         console.error('Error fetching quotes:', err)
-        setError('Failed to load quotes')
+        setError(t.quote.failedToLoad || 'Failed to load quotes')
         setQuotes([])
       } finally {
         setLoading(false)
@@ -78,32 +80,32 @@ const Quotes: React.FC = () => {
       if (response.success) {
         // Remove from local state
         setQuotes(prev => prev.filter(q => q.id !== quote.id))
-        showSuccess('Quote Deleted', `Quote #${quote.number} has been deleted successfully.`)
+        showSuccess(t.quote.quoteDeleted, `${t.quote.number} #${quote.number} ${t.common.success.toLowerCase()}.`)
       } else {
-        showError('Delete Failed', 'Failed to delete quote. Please try again.')
+        showError(t.common.error, t.common.error)
       }
     } catch (error) {
       console.error('Error deleting quote:', error)
-      showError('Delete Failed', 'Failed to delete quote. Please try again.')
+      showError(t.common.error, t.common.error)
     }
   }
 
   const handleStatusChange = async (quote: any, newStatus: string) => {
     try {
-      // Here you would call the API to update the quote status
-      // await apiClient.updateQuoteStatus(quote.id, newStatus)
-      console.log('Updating quote status:', quote.id, newStatus)
+      const response = await apiClient.updateQuoteStatus(quote.id, newStatus)
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
-      // Update local state
-      setQuotes(prev => prev.map(q => 
-        q.id === quote.id ? { ...q, status: newStatus as any } : q
-      ))
-      showSuccess('Status Updated', `Quote #${quote.number} status updated to ${newStatus}.`)
+      if (response.success) {
+        // Update local state
+        setQuotes(prev => prev.map(q => 
+          q.id === quote.id ? { ...q, status: newStatus as any } : q
+        ))
+        showSuccess(t.quote.statusUpdated || 'Status Updated', `${t.quote.number} #${quote.number} ${t.quote.statusUpdatedTo || 'status updated to'} ${newStatus}.`)
+      } else {
+        showError(t.quote.updateFailed || 'Update Failed', response.error || t.quote.failedToUpdateStatus || 'Failed to update quote status. Please try again.')
+      }
     } catch (error) {
-      showError('Update Failed', 'Failed to update quote status. Please try again.')
+      console.error('Error updating quote status:', error)
+      showError(t.quote.updateFailed || 'Update Failed', t.quote.failedToUpdateStatus || 'Failed to update quote status. Please try again.')
     }
   }
 
@@ -115,7 +117,7 @@ const Quotes: React.FC = () => {
     console.log('Quote created:', quoteData)
     // Add to local state
     setQuotes(prev => [...prev, { ...quoteData, id: Date.now().toString() }])
-    showSuccess('Quote Created', 'Quote has been created successfully.')
+    showSuccess(t.quote.quoteCreated, t.quote.quoteCreatedSuccess || 'Quote has been created successfully.')
   }
 
   const getStatusColor = (status: Quote['status']) => {
@@ -197,7 +199,7 @@ const Quotes: React.FC = () => {
       <div className="p-4 lg:p-8 h-full overflow-y-auto">
         <Alert
           type="error"
-          title="Failed to Load Quotes"
+          title={t.quote.failedToLoad}
           message={error}
           onClose={() => window.location.reload()}
         >
@@ -205,7 +207,7 @@ const Quotes: React.FC = () => {
             onClick={() => window.location.reload()}
             className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
           >
-            Try Again
+            {t.quote.tryAgain}
           </button>
         </Alert>
       </div>
@@ -219,10 +221,10 @@ const Quotes: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h2 className="text-xl lg:text-2xl font-bold text-gray-900 mb-1" style={{fontFamily: 'Poppins'}}>
-              Quotes
+              {t.quote.title}
             </h2>
             <p className="text-gray-600 text-sm">
-              Create and manage your quotes
+              {t.quote.subtitle}
             </p>
           </div>
           <TouchButton
@@ -235,7 +237,7 @@ const Quotes: React.FC = () => {
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
-            New Quote
+            {t.quote.newQuote}
           </TouchButton>
         </div>
       </div>
@@ -245,32 +247,32 @@ const Quotes: React.FC = () => {
         filters={[
           {
             key: 'status',
-            label: 'Status',
+            label: t.quote.status,
             type: 'select',
             options: [
-              { value: 'DRAFT', label: 'Draft' },
-              { value: 'SENT', label: 'Sent' },
-              { value: 'ACCEPTED', label: 'Accepted' },
-              { value: 'REJECTED', label: 'Rejected' },
-              { value: 'EXPIRED', label: 'Expired' },
+              { value: 'DRAFT', label: t.quote.draft },
+              { value: 'SENT', label: t.quote.sent },
+              { value: 'ACCEPTED', label: t.quote.accepted },
+              { value: 'REJECTED', label: t.quote.rejected },
+              { value: 'EXPIRED', label: t.quote.expired },
             ]
           },
           {
             key: 'amount',
-            label: 'Amount',
+            label: t.quote.amount,
             type: 'number',
-            placeholder: 'Filter by amount'
+            placeholder: t.quote.filterByAmount || 'Filter by amount'
           },
           {
             key: 'validUntil',
-            label: 'Valid Until',
+            label: t.quote.expiryDate,
             type: 'dateRange'
           },
           {
             key: 'customer',
-            label: 'Customer',
+            label: t.quote.customer,
             type: 'text',
-            placeholder: 'Search by customer name'
+            placeholder: t.quote.searchByCustomer || 'Search by customer name'
           }
         ]}
         onApplyFilters={setFilters}
@@ -286,13 +288,13 @@ const Quotes: React.FC = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No quotes yet</h3>
-            <p className="text-gray-600 mb-4">Get started by creating your first quote</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">{t.quote.noQuotesYet || 'No quotes yet'}</h3>
+            <p className="text-gray-600 mb-4">{t.quote.getStartedCreating || 'Get started by creating your first quote'}</p>
             <TouchButton
               variant="primary"
-              onClick={() => console.log('Create first quote')}
+              onClick={handleCreateQuote}
             >
-              Create Quote
+              {t.quote.create}
             </TouchButton>
           </div>
         </div>
@@ -306,7 +308,7 @@ const Quotes: React.FC = () => {
             columns={[
               {
                 key: 'number',
-                label: 'Quote #',
+                label: `${t.quote.number} #`,
                 sortable: true,
                 priority: 'high',
                 render: (value) => (
@@ -324,7 +326,7 @@ const Quotes: React.FC = () => {
               },
               {
                 key: 'customer',
-                label: 'Customer',
+                label: t.quote.customer,
                 sortable: true,
                 priority: 'high',
                 render: (value, row) => (
@@ -333,7 +335,7 @@ const Quotes: React.FC = () => {
               },
               {
                 key: 'total',
-                label: 'Amount',
+                label: t.quote.amount,
                 sortable: true,
                 priority: 'high',
                 render: (value, row) => (
@@ -342,7 +344,7 @@ const Quotes: React.FC = () => {
               },
               {
                 key: 'status',
-                label: 'Status',
+                label: t.quote.status,
                 sortable: true,
                 priority: 'medium',
                 render: (value) => (
@@ -354,7 +356,7 @@ const Quotes: React.FC = () => {
               },
               {
                 key: 'validUntil',
-                label: 'Valid Until',
+                label: t.quote.expiryDate,
                 sortable: true,
                 priority: 'medium',
                 render: (value) => (
@@ -363,7 +365,7 @@ const Quotes: React.FC = () => {
               },
               {
                 key: 'actions' as any,
-                label: 'Actions',
+                label: t.quote.actions,
                 render: (_, row) => (
                   <div className="flex items-center space-x-2">
                     <TouchButton
@@ -374,7 +376,7 @@ const Quotes: React.FC = () => {
                         navigate(`/quotes/${row.id}`)
                       }}
                     >
-                      View
+                      {t.quote.view}
                     </TouchButton>
                     <TouchButton
                       variant="primary"
@@ -384,7 +386,7 @@ const Quotes: React.FC = () => {
                         navigate(`/quotes/${row.id}/edit`)
                       }}
                     >
-                      Edit
+                      {t.quote.edit}
                     </TouchButton>
                     <TouchButton
                       variant="outline"
@@ -395,15 +397,15 @@ const Quotes: React.FC = () => {
                       }}
                       className="text-red-600 hover:text-red-700 hover:bg-red-50"
                     >
-                      Delete
+                      {t.common.delete}
                     </TouchButton>
                   </div>
                 )
               }
             ]}
-            title="Quote List"
+            title={t.quote.title}
             searchable={true}
-            searchPlaceholder="Search quotes..."
+            searchPlaceholder={t.quote.searchPlaceholder || 'Search quotes...'}
             pagination={true}
             pageSize={8}
             bulkActions={true}
@@ -423,7 +425,7 @@ const Quotes: React.FC = () => {
             columns={[
               {
                 key: 'number',
-                label: 'Quote #',
+                label: `${t.quote.number} #`,
                 sortable: true,
                 render: (value) => (
                   <span className="font-medium text-gray-900">{value}</span>
@@ -431,7 +433,7 @@ const Quotes: React.FC = () => {
               },
               {
                 key: 'customer',
-                label: 'Customer',
+                label: t.quote.customer,
                 sortable: true,
                 render: (value, row) => (
                   <span className="text-gray-900">{row.customer?.name || 'N/A'}</span>
@@ -439,7 +441,7 @@ const Quotes: React.FC = () => {
               },
               {
                 key: 'total',
-                label: 'Amount',
+                label: t.quote.amount,
                 sortable: true,
                 render: (value, row) => (
                   <span className="font-medium text-gray-900">{row.currency} {value?.toFixed(2) || '0.00'}</span>
@@ -447,7 +449,7 @@ const Quotes: React.FC = () => {
               },
               {
                 key: 'status',
-                label: 'Status',
+                label: t.quote.status,
                 sortable: true,
                 render: (value) => (
                   <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(value)}`}>
@@ -458,7 +460,7 @@ const Quotes: React.FC = () => {
               },
               {
                 key: 'validUntil',
-                label: 'Valid Until',
+                label: t.quote.expiryDate,
                 sortable: true,
                 render: (value) => (
                   <span className="text-gray-600">{value ? new Date(value).toLocaleDateString() : 'N/A'}</span>
@@ -466,7 +468,7 @@ const Quotes: React.FC = () => {
               },
               {
                 key: 'actions' as any,
-                label: 'Actions',
+                label: t.quote.actions,
                 render: (_, row) => (
                   <div className="flex items-center space-x-2">
                     <Button
@@ -477,7 +479,7 @@ const Quotes: React.FC = () => {
                         navigate(`/quotes/${row.id}`)
                       }}
                     >
-                      View
+                      {t.quote.view}
                     </Button>
                     <Button
                       variant="primary"
@@ -487,7 +489,7 @@ const Quotes: React.FC = () => {
                         navigate(`/quotes/${row.id}/edit`)
                       }}
                     >
-                      Edit
+                      {t.quote.edit}
                     </Button>
                     <Button
                       variant="outline"
@@ -498,15 +500,15 @@ const Quotes: React.FC = () => {
                       }}
                       className="text-red-600 hover:text-red-700 hover:bg-red-50"
                     >
-                      Delete
+                      {t.common.delete}
                     </Button>
                   </div>
                 )
               }
             ]}
-            title="Quote List"
+            title={t.quote.title}
             searchable={true}
-            searchPlaceholder="Search quotes..."
+            searchPlaceholder={t.quote.searchPlaceholder || 'Search quotes...'}
             pagination={true}
             pageSize={10}
             bulkActions={true}
@@ -525,10 +527,10 @@ const Quotes: React.FC = () => {
           handleDeleteQuote(deleteModal.quote)
           setDeleteModal({ isOpen: false, quote: null })
         }}
-        title="Delete Quote"
-        message={`Are you sure you want to delete quote #${deleteModal.quote?.number}? This action cannot be undone.`}
-        confirmText="Delete"
-        cancelText="Cancel"
+        title={t.quote.delete}
+        message={t.quote.deleteConfirmation?.replace('{{number}}', deleteModal.quote?.number || '') || `Are you sure you want to delete quote #${deleteModal.quote?.number}? This action cannot be undone.`}
+        confirmText={t.common.delete}
+        cancelText={t.common.cancel}
         type="danger"
       />
 

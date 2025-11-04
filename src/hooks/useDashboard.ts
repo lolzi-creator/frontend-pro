@@ -4,11 +4,41 @@ import { apiClient } from '../lib/api'
 // Define types inline
 interface DashboardStats {
   totalRevenue: number
+  thisMonthRevenue: number
+  revenueChange: number
+  totalInvoices: number
   outstandingInvoices: number
+  overdueCount: number
+  totalCustomers: number
+  activeCustomers: number
   newCustomers: number
+  customersChange: number
+  totalPayments: number
+  totalPaymentsAmount: number
+  totalExpenses: number
+  totalExpensesAmount: number
+  thisMonthExpenses: number
+  totalQuotes: number
+  totalQuotesValue: number
   quotesSent: number
-  recentActivity: any[]
-  overdueInvoices: any[]
+  quotesChange: number
+  netProfit: number
+  recentInvoices: Array<{
+    id: string
+    number: string
+    total: number
+    status: string
+    date: string
+  }>
+  recentActivity?: Array<{
+    id: string
+    type: string
+    action: string
+    resourceId?: string
+    details?: any
+    userName: string
+    timestamp: string
+  }>
 }
 
 interface UseDashboardReturn {
@@ -58,5 +88,7 @@ export const useDashboard = (): UseDashboardReturn => {
     refetch
   }
 }
+
+
 
 

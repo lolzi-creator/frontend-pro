@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useToast } from '../contexts/ToastContext'
+import { useLanguage } from '../contexts/LanguageContext'
+
+type Language = 'de' | 'fr' | 'en' | 'it'
 import { Card, CardHeader, CardTitle, CardContent } from '../components/Card'
 import Button from '../components/Button'
 import Input from '../components/Input'
@@ -9,6 +12,7 @@ import Modal from '../components/Modal'
 
 const Settings: React.FC = () => {
   const { showSuccess, showError, showInfo } = useToast()
+  const { language, setLanguage, t } = useLanguage()
   const [activeTab, setActiveTab] = useState('profile')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -43,6 +47,15 @@ const Settings: React.FC = () => {
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const [deletingLogo, setDeletingLogo] = useState(false)
 
+  // VAT Rates state
+  const [vatRates, setVatRates] = useState<Array<{ name: string; rate: number; isDefault: boolean }>>([
+    { name: 'Standard', rate: 7.7, isDefault: true },
+    { name: 'Reduziert', rate: 2.5, isDefault: false },
+    { name: 'Befreit', rate: 0, isDefault: false }
+  ])
+  const [loadingVatRates, setLoadingVatRates] = useState(false)
+  const [savingVatRates, setSavingVatRates] = useState(false)
+
   // Get current user to check if admin
   const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
   const isAdmin = currentUser?.role === 'ADMIN'
@@ -55,10 +68,10 @@ const Settings: React.FC = () => {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000))
       
-      showSuccess('Settings Saved', `${section} settings have been updated successfully.`)
+      showSuccess(t.settings.settingsSaved, t.settings.settingsUpdated.replace('{{section}}', section))
     } catch (err) {
-      setError('Failed to save settings. Please try again.')
-      showError('Save Failed', 'Failed to save settings. Please try again.')
+      setError(t.settings.failedToSave)
+      showError(t.settings.settingsError, t.settings.failedToSave)
     } finally {
       setLoading(false)
     }
@@ -91,6 +104,13 @@ const Settings: React.FC = () => {
     }
   }, [activeTab])
 
+  // Fetch VAT rates when VAT Rates tab is active
+  useEffect(() => {
+    if (activeTab === 'vat-rates') {
+      fetchVatRates()
+    }
+  }, [activeTab])
+
   const fetchUsers = async () => {
     try {
       const response = await apiClient.getUsers()
@@ -99,7 +119,7 @@ const Settings: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Error fetching users:', error)
-      showError('Failed to load users', error.response?.data?.message || 'Unknown error')
+      showError(t.settings.failedToLoadUsers, error.response?.data?.message || 'Unknown error')
     }
   }
 
@@ -122,7 +142,7 @@ const Settings: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Error fetching permissions:', error)
-      showError('Failed to load permissions', error.response?.data?.message || 'Unknown error')
+      showError(t.settings.failedToLoadPermissions, error.response?.data?.message || 'Unknown error')
     }
   }
 
@@ -138,13 +158,13 @@ const Settings: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Error fetching role permissions:', error)
-      showError('Failed to load role permissions', error.response?.data?.message || 'Unknown error')
+      showError(t.settings.failedToLoadRolePermissions, error.response?.data?.message || 'Unknown error')
     }
   }
 
   const handleInviteUser = async () => {
     if (!inviteForm.email || !inviteForm.name) {
-      showError('Validation Error', 'Please fill in all required fields')
+      showError(t.settings.validationError, t.settings.fillAllFields)
       return
     }
 
@@ -152,16 +172,16 @@ const Settings: React.FC = () => {
     try {
       const response = await apiClient.inviteUser(inviteForm.email, inviteForm.name, inviteForm.role)
       if (response.success) {
-        showSuccess('Invitation Sent', `Invitation email has been sent to ${inviteForm.email}`)
+        showSuccess(t.settings.invitationSent, t.settings.invitationEmailSent.replace('{{email}}', inviteForm.email))
         setShowInviteModal(false)
         setInviteForm({ email: '', name: '', role: 'EMPLOYEE' })
         fetchInvitations()
       } else {
-        showError('Failed to send invitation', response.message || 'Unknown error')
+        showError(t.settings.failedToSendInvitation, response.message || 'Unknown error')
       }
     } catch (error: any) {
       console.error('Error inviting user:', error)
-      showError('Failed to send invitation', error.response?.data?.message || 'Unknown error')
+      showError(t.settings.failedToSendInvitation, error.response?.data?.message || 'Unknown error')
     } finally {
       setInviting(false)
     }
@@ -171,14 +191,14 @@ const Settings: React.FC = () => {
     try {
       const response = await apiClient.updateUserRole(userId, newRole)
       if (response.success) {
-        showSuccess('Role Updated', 'User role has been updated successfully')
+        showSuccess(t.settings.roleUpdated, t.settings.userRoleUpdated)
         fetchUsers()
       } else {
-        showError('Failed to update role', response.message || 'Unknown error')
+        showError(t.settings.failedToUpdateRole, response.message || 'Unknown error')
       }
     } catch (error: any) {
       console.error('Error updating user role:', error)
-      showError('Failed to update role', error.response?.data?.message || 'Unknown error')
+      showError(t.settings.failedToUpdateRole, error.response?.data?.message || 'Unknown error')
     }
   }
 
@@ -189,12 +209,12 @@ const Settings: React.FC = () => {
         : await apiClient.deactivateUser(userId)
       
       if (response.success) {
-        showSuccess('Status Updated', `User has been ${isActive ? 'reactivated' : 'deactivated'}`)
+        showSuccess(t.settings.statusUpdated, isActive ? t.settings.userReactivated : t.settings.userDeactivated)
         fetchUsers()
       }
     } catch (error: any) {
       console.error('Error updating user status:', error)
-      showError('Failed to update status', error.response?.data?.message || 'Unknown error')
+      showError(t.settings.failedToUpdateStatus, error.response?.data?.message || 'Unknown error')
     }
   }
 
@@ -202,12 +222,12 @@ const Settings: React.FC = () => {
     try {
       const response = await apiClient.cancelInvitation(invitationId)
       if (response.success) {
-        showSuccess('Invitation Cancelled', 'The invitation has been cancelled')
+        showSuccess(t.settings.invitationCancelled, t.settings.invitationHasBeenCancelled)
         fetchInvitations()
       }
     } catch (error: any) {
       console.error('Error cancelling invitation:', error)
-      showError('Failed to cancel invitation', error.response?.data?.message || 'Unknown error')
+      showError(t.settings.failedToCancelInvitation, error.response?.data?.message || 'Unknown error')
     }
   }
 
@@ -216,38 +236,38 @@ const Settings: React.FC = () => {
     try {
       const response = await apiClient.updateRolePermissions(selectedRole, rolePermissions)
       if (response.success) {
-        showSuccess('Permissions Updated', `Permissions for ${selectedRole} role have been updated`)
+        showSuccess(t.settings.permissionsUpdated, t.settings.permissionsForRoleUpdated.replace('{{role}}', selectedRole))
       } else {
-        showError('Failed to update permissions', response.message || 'Unknown error')
+        showError(t.settings.failedToUpdatePermissions, response.message || 'Unknown error')
       }
     } catch (error: any) {
       console.error('Error updating permissions:', error)
-      showError('Failed to update permissions', error.response?.data?.message || 'Unknown error')
+      showError(t.settings.failedToUpdatePermissions, error.response?.data?.message || 'Unknown error')
     } finally {
       setSavingPermissions(false)
     }
   }
 
   const handleResetPermissions = async () => {
-    if (!window.confirm(`Are you sure you want to reset all permissions for ${selectedRole} role to defaults?`)) {
+    if (!window.confirm(t.settings.resetPermissionsConfirmation.replace('{{role}}', selectedRole))) {
       return
     }
 
     try {
       const response = await apiClient.resetRolePermissions(selectedRole)
       if (response.success) {
-        showSuccess('Permissions Reset', `Permissions for ${selectedRole} role have been reset to defaults`)
+        showSuccess(t.settings.permissionsReset, t.settings.permissionsResetToDefaults.replace('{{role}}', selectedRole))
         fetchRolePermissions(selectedRole)
       }
     } catch (error: any) {
       console.error('Error resetting permissions:', error)
-      showError('Failed to reset permissions', error.response?.data?.message || 'Unknown error')
+      showError(t.settings.failedToResetPermissions, error.response?.data?.message || 'Unknown error')
     }
   }
 
   const handleTogglePermission = (permissionName: string) => {
     if (selectedRole === 'ADMIN') {
-      showInfo('Info', 'Admin role has all permissions and cannot be modified')
+      showInfo(t.settings.info, t.settings.adminHasAllPermissionsInfo)
       return
     }
     setRolePermissions(prev => ({
@@ -265,7 +285,7 @@ const Settings: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Error fetching company:', error)
-      showError('Failed to load company data', error.response?.data?.message || 'Unknown error')
+      showError(t.settings.failedToLoadCompanyData, error.response?.data?.message || 'Unknown error')
     }
   }
 
@@ -276,13 +296,13 @@ const Settings: React.FC = () => {
     // Validate file type
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml']
     if (!allowedTypes.includes(file.type)) {
-      showError('Invalid File Type', 'Please upload an image file (JPEG, PNG, GIF, WebP, or SVG)')
+      showError(t.settings.invalidFileType, t.settings.pleaseUploadImage)
       return
     }
 
     // Validate file size (5MB)
     if (file.size > 5 * 1024 * 1024) {
-      showError('File Too Large', 'Logo file must be smaller than 5MB')
+      showError(t.settings.fileTooLarge, t.settings.logoFileMustBeSmaller)
       return
     }
 
@@ -291,15 +311,15 @@ const Settings: React.FC = () => {
       const response = await apiClient.uploadLogo(file)
       if (response.success) {
         setLogoUrl(response.data?.logo_url || null)
-        showSuccess('Logo Uploaded', 'Company logo has been uploaded successfully')
+        showSuccess(t.settings.logoUploaded, t.settings.companyLogoUploaded)
         // Refresh company data
         fetchCompany()
       } else {
-        showError('Upload Failed', response.message || 'Failed to upload logo')
+        showError(t.settings.uploadFailed, response.message || t.settings.uploadFailed)
       }
     } catch (error: any) {
       console.error('Error uploading logo:', error)
-      showError('Upload Failed', error.response?.data?.message || 'Failed to upload logo')
+      showError(t.settings.uploadFailed, error.response?.data?.message || t.settings.uploadFailed)
     } finally {
       setUploadingLogo(false)
       // Reset input
@@ -308,7 +328,7 @@ const Settings: React.FC = () => {
   }
 
   const handleDeleteLogo = async () => {
-    if (!window.confirm('Are you sure you want to delete the company logo?')) {
+    if (!window.confirm(t.settings.deleteLogoConfirmation)) {
       return
     }
 
@@ -317,18 +337,91 @@ const Settings: React.FC = () => {
       const response = await apiClient.deleteLogo()
       if (response.success) {
         setLogoUrl(null)
-        showSuccess('Logo Deleted', 'Company logo has been deleted successfully')
+        showSuccess(t.settings.logoDeleted, t.settings.companyLogoDeleted)
         // Refresh company data
         fetchCompany()
       } else {
-        showError('Delete Failed', response.message || 'Failed to delete logo')
+        showError(t.settings.deleteFailed, response.message || t.settings.deleteFailed)
       }
     } catch (error: any) {
       console.error('Error deleting logo:', error)
-      showError('Delete Failed', error.response?.data?.message || 'Failed to delete logo')
+      showError(t.settings.deleteFailed, error.response?.data?.message || t.settings.deleteFailed)
     } finally {
       setDeletingLogo(false)
     }
+  }
+
+  const fetchVatRates = async () => {
+    setLoadingVatRates(true)
+    try {
+      const response = await apiClient.getVatRates()
+      if (response.success && response.data) {
+        // Ensure we have exactly 3 rates, pad with empty ones if needed
+        const rates = response.data.vatRates || response.data || []
+        const paddedRates = [...rates]
+        while (paddedRates.length < 3) {
+          paddedRates.push({ name: '', rate: 0, isDefault: false })
+        }
+        setVatRates(paddedRates.slice(0, 3))
+      }
+    } catch (error: any) {
+      console.error('Error fetching VAT rates:', error)
+      showError(t.settings.failedToLoadVatRates, error.response?.data?.message || 'Unknown error')
+    } finally {
+      setLoadingVatRates(false)
+    }
+  }
+
+  const handleSaveVatRates = async () => {
+    // Validation
+    const validRates = vatRates.filter(rate => rate.name.trim() && rate.rate >= 0 && rate.rate <= 100)
+    
+    if (validRates.length === 0) {
+      showError(t.settings.validationError, t.settings.vatRateNameRequired)
+      return
+    }
+
+    if (validRates.length > 3) {
+      showError(t.settings.validationError, t.settings.maximumThreeRates)
+      return
+    }
+
+    if (!validRates.some(rate => rate.isDefault)) {
+      showError(t.settings.validationError, t.settings.atLeastOneDefault)
+      return
+    }
+
+    setSavingVatRates(true)
+    try {
+      const response = await apiClient.updateVatRates(validRates)
+      if (response.success) {
+        showSuccess(t.settings.vatRatesSaved, t.settings.vatRatesUpdated)
+        fetchVatRates()
+      } else {
+        showError(t.settings.failedToSaveVatRates, response.message || 'Unknown error')
+      }
+    } catch (error: any) {
+      console.error('Error saving VAT rates:', error)
+      showError(t.settings.failedToSaveVatRates, error.response?.data?.message || 'Unknown error')
+    } finally {
+      setSavingVatRates(false)
+    }
+  }
+
+  const handleVatRateChange = (index: number, field: 'name' | 'rate' | 'isDefault', value: string | number | boolean) => {
+    const updatedRates = [...vatRates]
+    updatedRates[index] = { ...updatedRates[index], [field]: value }
+    
+    // If setting as default, unset others
+    if (field === 'isDefault' && value === true) {
+      updatedRates.forEach((rate, i) => {
+        if (i !== index) {
+          rate.isDefault = false
+        }
+      })
+    }
+    
+    setVatRates(updatedRates)
   }
 
   return (
@@ -338,10 +431,10 @@ const Settings: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-3xl font-bold text-gray-900 mb-2" style={{fontFamily: 'Poppins'}}>
-              Settings
+              {t.settings.title}
             </h2>
             <p className="text-gray-600">
-              Manage your account and application preferences
+              {t.settings.subtitle}
             </p>
           </div>
         </div>
@@ -351,7 +444,7 @@ const Settings: React.FC = () => {
         <div className="mb-6">
           <Alert
             type="error"
-            title="Error"
+            title={t.settings.settingsError}
             message={error}
             onClose={() => setError(null)}
           />
@@ -375,7 +468,7 @@ const Settings: React.FC = () => {
                   <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
-                  Profile
+                  {t.settings.profile}
                 </button>
                 <button 
                   onClick={() => setActiveTab('company')}
@@ -388,7 +481,7 @@ const Settings: React.FC = () => {
                   <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
-                  Company
+                  {t.settings.company}
                 </button>
                 <button 
                   onClick={() => setActiveTab('preferences')}
@@ -402,7 +495,20 @@ const Settings: React.FC = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 00-1.066 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
-                  Preferences
+                  {t.settings.preferences}
+                </button>
+                <button 
+                  onClick={() => setActiveTab('vat-rates')}
+                  className={`flex items-center w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    activeTab === 'vat-rates' 
+                      ? 'text-orange-700 bg-orange-50' 
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                  {t.settings.vatRates}
                 </button>
                 <button 
                   onClick={() => setActiveTab('security')}
@@ -415,7 +521,7 @@ const Settings: React.FC = () => {
                   <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
-                  Security
+                  {t.settings.security}
                 </button>
                 <button 
                   onClick={() => setActiveTab('team')}
@@ -428,7 +534,7 @@ const Settings: React.FC = () => {
                   <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
-                  Team
+                  {t.settings.team}
                 </button>
                 {isAdmin && (
                   <button 
@@ -442,7 +548,7 @@ const Settings: React.FC = () => {
                     <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                     </svg>
-                    Permissions
+                    {t.settings.permissions}
                   </button>
                 )}
                 <button 
@@ -456,7 +562,7 @@ const Settings: React.FC = () => {
                   <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                   </svg>
-                  Billing
+                  {t.settings.billing}
                 </button>
               </nav>
             </CardContent>
@@ -469,7 +575,7 @@ const Settings: React.FC = () => {
           {activeTab === 'profile' && (
           <Card>
             <CardHeader>
-              <CardTitle>Profile Information</CardTitle>
+              <CardTitle>{t.settings.profileInformation}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
@@ -478,36 +584,36 @@ const Settings: React.FC = () => {
                     <span className="text-2xl font-bold text-orange-600">JD</span>
                   </div>
                   <div>
-                    <Button variant="outline">Change Photo</Button>
-                    <p className="text-sm text-gray-500 mt-1">JPG, PNG or GIF. Max size 2MB.</p>
+                    <Button variant="outline">{t.settings.changePhoto}</Button>
+                    <p className="text-sm text-gray-500 mt-1">{t.settings.photoRequirements}</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <Input
-                    label="First Name"
+                    label={t.settings.firstName}
                     value={formData.firstName}
                     onChange={(e) => handleInputChange('firstName', e.target.value)}
-                    placeholder="Enter your first name"
+                    placeholder={t.settings.enterFirstName}
                   />
                   <Input
-                    label="Last Name"
+                    label={t.settings.lastName}
                     value={formData.lastName}
                     onChange={(e) => handleInputChange('lastName', e.target.value)}
-                    placeholder="Enter your last name"
+                    placeholder={t.settings.enterLastName}
                   />
                 </div>
 
                 <Input
-                  label="Email"
+                  label={t.settings.email}
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
-                  placeholder="Enter your email address"
+                  placeholder={t.settings.enterEmail}
                 />
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.phone}</label>
                   <input
                     type="tel"
                     defaultValue="+41 44 123 45 67"
@@ -524,10 +630,10 @@ const Settings: React.FC = () => {
                     {loading ? (
                       <div className="flex items-center">
                         <LoadingSpinner size="sm" className="mr-2" />
-                        Saving...
+                        {t.settings.saving}
                       </div>
                     ) : (
-                      'Save Changes'
+                      t.settings.saveChanges
                     )}
                   </Button>
                 </div>
@@ -540,13 +646,13 @@ const Settings: React.FC = () => {
           {activeTab === 'company' && (
           <Card>
             <CardHeader>
-              <CardTitle>Company Information</CardTitle>
+              <CardTitle>{t.settings.companyInformation}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
                 {/* Logo Upload Section */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">Company Logo</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">{t.settings.companyLogo}</label>
                   <div className="flex items-start space-x-6">
                     <div className="flex-shrink-0">
                       {logoUrl ? (
@@ -584,14 +690,14 @@ const Settings: React.FC = () => {
                           {uploadingLogo ? (
                             <>
                               <LoadingSpinner size="sm" className="mr-2" />
-                              Uploading...
+                              {t.settings.saving}
                             </>
                           ) : (
                             <>
                               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                               </svg>
-                              {logoUrl ? 'Change Logo' : 'Upload Logo'}
+                              {logoUrl ? t.common.edit : t.settings.upload}
                             </>
                           )}
                         </label>
@@ -606,28 +712,28 @@ const Settings: React.FC = () => {
                             {deletingLogo ? (
                               <>
                                 <LoadingSpinner size="sm" className="mr-2" />
-                                Deleting...
+                                {t.settings.saving}
                               </>
                             ) : (
                               <>
                                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
-                                Delete Logo
+                                {t.settings.remove}
                               </>
                             )}
                           </button>
                         )}
                       </div>
                       <p className="text-sm text-gray-500">
-                        JPG, PNG, GIF, WebP, or SVG. Max size 5MB. The logo will appear on all PDFs and emails.
+                        {t.settings.logoRequirements}
                       </p>
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Company Name</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.companyName}</label>
                   <input
                     type="text"
                     defaultValue={companyData?.name || "InvoSmart AG"}
@@ -637,7 +743,7 @@ const Settings: React.FC = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">VAT Number</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.vatNumber}</label>
                     <input
                       type="text"
                       defaultValue="CHE-123.456.789"
@@ -645,7 +751,7 @@ const Settings: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Company UID</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.companyUID}</label>
                     <input
                       type="text"
                       defaultValue="CHE-123.456.789"
@@ -655,7 +761,7 @@ const Settings: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.address}</label>
                   <textarea
                     rows={3}
                     defaultValue="Musterstrasse 123&#10;8001 Zürich&#10;Switzerland"
@@ -672,10 +778,10 @@ const Settings: React.FC = () => {
                     {loading ? (
                       <div className="flex items-center">
                         <LoadingSpinner size="sm" className="mr-2" />
-                        Saving...
+                        {t.settings.saving}
                       </div>
                     ) : (
-                      'Save Changes'
+                      t.settings.saveChanges
                     )}
                   </Button>
                 </div>
@@ -688,22 +794,29 @@ const Settings: React.FC = () => {
           {activeTab === 'preferences' && (
           <Card>
             <CardHeader>
-              <CardTitle>Preferences</CardTitle>
+              <CardTitle>{t.settings.preferencesLabel}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Language</label>
-                  <select className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500">
-                    <option>English</option>
-                    <option>Deutsch</option>
-                    <option>Français</option>
-                    <option>Italiano</option>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.language}</label>
+                  <select 
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value as Language)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  >
+                    <option value="de">Deutsch</option>
+                    <option value="fr">Français</option>
+                    <option value="en">English</option>
+                    <option value="it">Italiano</option>
                   </select>
+                  <p className="mt-1 text-sm text-gray-500">
+                    {t.settings.thisChangesLanguage}
+                  </p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Currency</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.currency}</label>
                   <select className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500">
                     <option>CHF (Swiss Franc)</option>
                     <option>EUR (Euro)</option>
@@ -713,7 +826,7 @@ const Settings: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Date Format</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.dateFormat}</label>
                   <select className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500">
                     <option>DD/MM/YYYY</option>
                     <option>MM/DD/YYYY</option>
@@ -724,29 +837,29 @@ const Settings: React.FC = () => {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="text-sm font-medium text-gray-900">Email Notifications</h4>
-                      <p className="text-sm text-gray-500">Receive email notifications for important events</p>
+                      <h4 className="text-sm font-medium text-gray-900">{t.settings.emailNotifications}</h4>
+                      <p className="text-sm text-gray-500">{t.settings.receiveEmailNotifications}</p>
                     </div>
                     <input type="checkbox" className="rounded border-gray-300 text-orange-600 focus:ring-orange-500" defaultChecked />
                   </div>
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="text-sm font-medium text-gray-900">Dark Mode</h4>
-                      <p className="text-sm text-gray-500">Use dark theme for the application</p>
+                      <h4 className="text-sm font-medium text-gray-900">{t.settings.darkMode}</h4>
+                      <p className="text-sm text-gray-500">{t.settings.useDarkTheme}</p>
                     </div>
                     <input type="checkbox" className="rounded border-gray-300 text-orange-600 focus:ring-orange-500" />
                   </div>
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="text-sm font-medium text-gray-900">Auto-save</h4>
-                      <p className="text-sm text-gray-500">Automatically save changes as you work</p>
+                      <h4 className="text-sm font-medium text-gray-900">{t.settings.autoSave}</h4>
+                      <p className="text-sm text-gray-500">{t.settings.automaticallySave}</p>
                     </div>
                     <input type="checkbox" className="rounded border-gray-300 text-orange-600 focus:ring-orange-500" defaultChecked />
                   </div>
                 </div>
 
                 <div className="flex justify-end">
-                  <Button variant="primary">Save Preferences</Button>
+                  <Button variant="primary">{t.settings.savePreferences}</Button>
                 </div>
               </div>
             </CardContent>
@@ -757,35 +870,35 @@ const Settings: React.FC = () => {
           {activeTab === 'security' && (
           <Card>
             <CardHeader>
-              <CardTitle>Security Settings</CardTitle>
+              <CardTitle>{t.settings.securitySettings}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
                 <div>
-                  <h4 className="text-lg font-medium text-gray-900 mb-4">Change Password</h4>
+                  <h4 className="text-lg font-medium text-gray-900 mb-4">{t.settings.changePassword}</h4>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Current Password</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.currentPassword}</label>
                       <input
                         type="password"
                         className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.newPassword}</label>
                       <input
                         type="password"
                         className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Confirm New Password</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.confirmNewPassword}</label>
                       <input
                         type="password"
                         className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
                       />
                     </div>
-                    <Button variant="primary">Update Password</Button>
+                    <Button variant="primary">{t.settings.updatePassword}</Button>
                   </div>
                 </div>
               </div>
@@ -799,13 +912,13 @@ const Settings: React.FC = () => {
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle>Team Management</CardTitle>
+                    <CardTitle>{t.settings.teamManagement}</CardTitle>
                     {isAdmin && (
                       <Button variant="primary" onClick={() => setShowInviteModal(true)}>
                         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                         </svg>
-                        Invite Member
+                        {t.settings.inviteMember}
                       </Button>
                     )}
                   </div>
@@ -813,11 +926,11 @@ const Settings: React.FC = () => {
                 <CardContent>
                   <div className="space-y-6">
                     <div>
-                      <h4 className="text-lg font-medium text-gray-900 mb-2">Team Members</h4>
-                      <p className="text-sm text-gray-500 mb-4">Manage your team members and their roles</p>
+                      <h4 className="text-lg font-medium text-gray-900 mb-2">{t.settings.teamMembers}</h4>
+                      <p className="text-sm text-gray-500 mb-4">{t.settings.manageTeamMembers}</p>
                       <div className="space-y-3">
                         {users.length === 0 ? (
-                          <p className="text-sm text-gray-500 text-center py-4">No users found</p>
+                          <p className="text-sm text-gray-500 text-center py-4">{t.settings.noUsersFound}</p>
                         ) : (
                           users.map((user: any) => {
                             const initials = user.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) || 'U'
@@ -836,7 +949,7 @@ const Settings: React.FC = () => {
                                     <div className="flex items-center gap-2">
                                       <p className="text-sm font-medium text-gray-900">{user.name}</p>
                                       {isCurrentUser && (
-                                        <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded">You</span>
+                                        <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded">{t.settings.you}</span>
                                       )}
                                     </div>
                                     <p className="text-xs text-gray-500">{user.email}</p>
@@ -846,10 +959,10 @@ const Settings: React.FC = () => {
                                           ? 'bg-orange-100 text-orange-800' 
                                           : 'bg-blue-100 text-blue-800'
                                       }`}>
-                                        {user.role}
+                                        {user.role === 'ADMIN' ? t.settings.admin : t.settings.employee}
                                       </span>
                                       {!user.is_active && (
-                                        <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded">Inactive</span>
+                                        <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded">{t.settings.inactive}</span>
                                       )}
                                     </div>
                                   </div>
@@ -861,15 +974,15 @@ const Settings: React.FC = () => {
                                       onChange={(e) => handleUpdateUserRole(user.id, e.target.value as 'ADMIN' | 'EMPLOYEE')}
                                       className="text-xs border border-gray-300 rounded px-2 py-1"
                                     >
-                                      <option value="EMPLOYEE">Employee</option>
-                                      <option value="ADMIN">Admin</option>
+                                      <option value="EMPLOYEE">{t.settings.employee}</option>
+                                      <option value="ADMIN">{t.settings.admin}</option>
                                     </select>
                                     <Button
                                       variant="outline"
                                       size="sm"
                                       onClick={() => handleToggleUserStatus(user.id, !user.is_active)}
                                     >
-                                      {user.is_active ? 'Deactivate' : 'Activate'}
+                                      {user.is_active ? t.settings.deactivate : t.settings.activate}
                                     </Button>
                                   </div>
                                 )}
@@ -883,7 +996,7 @@ const Settings: React.FC = () => {
                     {/* Pending Invitations */}
                     {isAdmin && invitations.filter((inv: any) => !inv.accepted_at && new Date(inv.expires_at) > new Date()).length > 0 && (
                       <div>
-                        <h4 className="text-lg font-medium text-gray-900 mb-2">Pending Invitations</h4>
+                        <h4 className="text-lg font-medium text-gray-900 mb-2">{t.settings.pendingInvitations}</h4>
                         <div className="space-y-2">
                           {invitations
                             .filter((inv: any) => !inv.accepted_at && new Date(inv.expires_at) > new Date())
@@ -891,9 +1004,9 @@ const Settings: React.FC = () => {
                               <div key={invitation.id} className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                                 <div>
                                   <p className="text-sm font-medium text-gray-900">{invitation.name}</p>
-                                  <p className="text-xs text-gray-500">{invitation.email} • {invitation.role}</p>
+                                  <p className="text-xs text-gray-500">{invitation.email} • {invitation.role === 'ADMIN' ? t.settings.admin : t.settings.employee}</p>
                                   <p className="text-xs text-gray-400 mt-1">
-                                    Expires: {new Date(invitation.expires_at).toLocaleDateString()}
+                                    {t.settings.expiresLabel} {new Date(invitation.expires_at).toLocaleDateString()}
                                   </p>
                                 </div>
                                 <Button
@@ -901,7 +1014,7 @@ const Settings: React.FC = () => {
                                   size="sm"
                                   onClick={() => handleCancelInvitation(invitation.id)}
                                 >
-                                  Cancel
+                                  {t.common.cancel}
                                 </Button>
                               </div>
                             ))}
@@ -919,12 +1032,12 @@ const Settings: React.FC = () => {
                   setShowInviteModal(false)
                   setInviteForm({ email: '', name: '', role: 'EMPLOYEE' })
                 }}
-                title="Invite Team Member"
+                title={t.settings.inviteTeamMember}
                 size="md"
               >
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.emailAddress} *</label>
                     <input
                       type="email"
                       value={inviteForm.email}
@@ -934,7 +1047,7 @@ const Settings: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.fullName} *</label>
                     <input
                       type="text"
                       value={inviteForm.name}
@@ -944,14 +1057,14 @@ const Settings: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Role *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.role} *</label>
                     <select
                       value={inviteForm.role}
                       onChange={(e) => setInviteForm({ ...inviteForm, role: e.target.value as 'ADMIN' | 'EMPLOYEE' })}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
                     >
-                      <option value="EMPLOYEE">Employee</option>
-                      <option value="ADMIN">Admin</option>
+                      <option value="EMPLOYEE">{t.settings.employee}</option>
+                      <option value="ADMIN">{t.settings.admin}</option>
                     </select>
                   </div>
                   <div className="flex justify-end gap-3 pt-4 border-t">
@@ -963,7 +1076,7 @@ const Settings: React.FC = () => {
                       }}
                       disabled={inviting}
                     >
-                      Cancel
+                      {t.common.cancel}
                     </Button>
                     <Button
                       variant="primary"
@@ -973,10 +1086,10 @@ const Settings: React.FC = () => {
                       {inviting ? (
                         <>
                           <LoadingSpinner size="sm" className="mr-2" />
-                          Sending...
+                          {t.settings.sending}
                         </>
                       ) : (
-                        'Send Invitation'
+                        t.settings.sendInvitation
                       )}
                     </Button>
                   </div>
@@ -990,13 +1103,13 @@ const Settings: React.FC = () => {
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle>Role Permissions</CardTitle>
+                  <CardTitle>{t.settings.rolePermissions}</CardTitle>
                   <div className="flex gap-2">
                     <Button variant="outline" onClick={handleResetPermissions} size="sm">
-                      Reset to Defaults
+                      {t.settings.resetToDefaults}
                     </Button>
                     <Button variant="primary" onClick={handleSavePermissions} disabled={savingPermissions} size="sm">
-                      {savingPermissions ? 'Saving...' : 'Save Changes'}
+                      {savingPermissions ? t.settings.saving : t.settings.saveChanges}
                     </Button>
                   </div>
                 </div>
@@ -1005,7 +1118,7 @@ const Settings: React.FC = () => {
                 <div className="space-y-6">
                   {/* Role Selector */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Select Role</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.selectRole}</label>
                     <select
                       value={selectedRole}
                       onChange={(e) => {
@@ -1014,11 +1127,11 @@ const Settings: React.FC = () => {
                       }}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 max-w-xs"
                     >
-                      <option value="EMPLOYEE">Employee</option>
-                      <option value="ADMIN">Admin</option>
+                      <option value="EMPLOYEE">{t.settings.employee}</option>
+                      <option value="ADMIN">{t.settings.admin}</option>
                     </select>
                     {selectedRole === 'ADMIN' && (
-                      <p className="text-sm text-gray-500 mt-2">Admin role has all permissions enabled and cannot be modified.</p>
+                      <p className="text-sm text-gray-500 mt-2">{t.settings.adminHasAllPermissions}</p>
                     )}
                   </div>
 
@@ -1055,23 +1168,121 @@ const Settings: React.FC = () => {
             </Card>
           )}
 
+          {/* VAT Rates Settings */}
+          {activeTab === 'vat-rates' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>{t.settings.vatRatesSettings}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div>
+                  <p className="text-sm text-gray-600 mb-6">
+                    {t.settings.vatRatesDescription}
+                  </p>
+                </div>
+
+                {loadingVatRates ? (
+                  <div className="flex justify-center py-8">
+                    <LoadingSpinner size="md" />
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {vatRates.map((rate, index) => (
+                      <div key={index} className="border border-gray-200 rounded-lg p-4">
+                        <h4 className="text-sm font-medium text-gray-900 mb-4">
+                          {index === 0 ? t.settings.vatRate1 : index === 1 ? t.settings.vatRate2 : t.settings.vatRate3}
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              {t.settings.vatRateName} *
+                            </label>
+                            <input
+                              type="text"
+                              value={rate.name}
+                              onChange={(e) => handleVatRateChange(index, 'name', e.target.value)}
+                              placeholder="z.B. Standard"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              {t.settings.vatRatePercentage} *
+                            </label>
+                            <input
+                              type="number"
+                              value={rate.rate || ''}
+                              onChange={(e) => handleVatRateChange(index, 'rate', parseFloat(e.target.value) || 0)}
+                              onFocus={(e) => {
+                                if (parseFloat(e.target.value) === 0) {
+                                  e.target.value = '';
+                                }
+                              }}
+                              placeholder="7.7"
+                              step="0.1"
+                              min="0"
+                              max="100"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                            />
+                          </div>
+                          <div className="flex items-end">
+                            <label className="flex items-center cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={rate.isDefault}
+                                onChange={(e) => handleVatRateChange(index, 'isDefault', e.target.checked)}
+                                className="rounded border-gray-300 text-orange-600 focus:ring-orange-500 mr-2"
+                              />
+                              <span className="text-sm font-medium text-gray-700">
+                                {t.settings.setAsDefault}
+                              </span>
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex justify-end pt-4 border-t">
+                  <Button 
+                    variant="primary" 
+                    onClick={handleSaveVatRates}
+                    disabled={savingVatRates || loadingVatRates}
+                  >
+                    {savingVatRates ? (
+                      <div className="flex items-center">
+                        <LoadingSpinner size="sm" className="mr-2" />
+                        {t.settings.saving}
+                      </div>
+                    ) : (
+                      t.settings.saveChanges
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          )}
+
           {/* Billing Settings */}
           {activeTab === 'billing' && (
           <Card>
             <CardHeader>
-              <CardTitle>Billing & Subscription</CardTitle>
+              <CardTitle>{t.settings.billingSubscription}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
                 <div className="flex items-center justify-between p-4 bg-orange-50 rounded-lg">
                   <div>
-                    <h4 className="text-lg font-medium text-gray-900">Pro Plan</h4>
-                    <p className="text-sm text-gray-500">CHF 29/month • Next billing: Dec 15, 2024</p>
+                    <h4 className="text-lg font-medium text-gray-900">{t.settings.proPlan}</h4>
+                    <p className="text-sm text-gray-500">CHF 29/month • {t.settings.nextBilling} Dec 15, 2024</p>
                   </div>
-                  <Button variant="outline">Change Plan</Button>
+                  <Button variant="outline">{t.settings.changePlan}</Button>
                 </div>
                 <div>
-                  <h4 className="text-lg font-medium text-gray-900 mb-4">Payment Method</h4>
+                  <h4 className="text-lg font-medium text-gray-900 mb-4">{t.settings.paymentMethod}</h4>
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center space-x-3">
                       <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -1081,14 +1292,14 @@ const Settings: React.FC = () => {
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-900">•••• •••• •••• 1234</p>
-                        <p className="text-xs text-gray-500">Expires 12/25</p>
+                        <p className="text-xs text-gray-500">{t.settings.expiresDate} 12/25</p>
                       </div>
                     </div>
-                    <Button variant="outline" size="sm">Update</Button>
+                    <Button variant="outline" size="sm">{t.settings.update}</Button>
                   </div>
                 </div>
                 <div>
-                  <h4 className="text-lg font-medium text-gray-900 mb-4">Billing History</h4>
+                  <h4 className="text-lg font-medium text-gray-900 mb-4">{t.settings.billingHistory}</h4>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between py-2">
                       <span className="text-sm text-gray-600">November 2024</span>

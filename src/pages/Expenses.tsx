@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useToast } from '../contexts/ToastContext'
+import { useLanguage } from '../contexts/LanguageContext'
 import { apiClient } from '../lib/api'
 import Button from '../components/Button'
 import TouchButton from '../components/TouchButton'
@@ -33,6 +34,7 @@ interface Expense {
 const Expenses: React.FC = () => {
   const navigate = useNavigate()
   const { showSuccess, showError, showWarning, showInfo } = useToast()
+  const { t } = useLanguage()
   const [filters, setFilters] = useState<Record<string, any>>({})
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
@@ -97,7 +99,7 @@ const Expenses: React.FC = () => {
       }
     } catch (err) {
       console.error('Error fetching expenses:', err)
-      setError('Failed to load expenses')
+      setError(t.expense.failedToLoad)
     } finally {
       setLoading(false)
     }
@@ -116,7 +118,7 @@ const Expenses: React.FC = () => {
 
   const handleDeleteExpense = async (expense: any) => {
     if (!expense?.id) {
-      showError('Delete Failed', 'Invalid expense data')
+      showError(t.common.error, 'Invalid expense data')
       return
     }
 
@@ -125,13 +127,13 @@ const Expenses: React.FC = () => {
       if (response.success) {
         fetchExpenses()
         fetchStats()
-        showSuccess('Expense Deleted', `${expense.title} has been deleted successfully.`)
+        showSuccess(t.expense.expenseDeleted, t.expense.expenseDeletedSuccess || `${expense.title} ${t.common.success.toLowerCase()}.`)
       } else {
-        showError('Delete Failed', response.error || 'Failed to delete expense. Please try again.')
+        showError(t.common.error, response.error || t.common.error)
       }
     } catch (error) {
       console.error('Error deleting expense:', error)
-      showError('Delete Failed', 'Failed to delete expense. Please try again.')
+      showError(t.common.error, t.common.error)
     }
   }
 
@@ -184,7 +186,7 @@ const Expenses: React.FC = () => {
       <div className="p-4 lg:p-8 h-full overflow-y-auto">
         <Alert
           type="error"
-          title="Failed to Load Expenses"
+          title={t.expense.failedToLoad}
           message={error}
           onClose={() => fetchExpenses()}
         >
@@ -192,7 +194,7 @@ const Expenses: React.FC = () => {
             onClick={() => fetchExpenses()}
             className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
           >
-            Try Again
+            {t.expense.tryAgain}
           </button>
         </Alert>
       </div>
@@ -206,10 +208,10 @@ const Expenses: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h2 className="text-xl lg:text-2xl font-bold text-gray-900 mb-1" style={{fontFamily: 'Poppins'}}>
-              Expenses
+              {t.expense.title}
             </h2>
             <p className="text-gray-600 text-sm">
-              Track and manage company expenses
+              {t.expense.subtitle}
             </p>
           </div>
           <div className="flex gap-3">
@@ -221,7 +223,7 @@ const Expenses: React.FC = () => {
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
-              Export
+              {t.expense.export}
             </TouchButton>
             <TouchButton
               variant="primary"
@@ -233,7 +235,7 @@ const Expenses: React.FC = () => {
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
-              New Expense
+              {t.expense.newExpense}
             </TouchButton>
           </div>
         </div>
@@ -244,7 +246,7 @@ const Expenses: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <Card>
             <div className="p-4">
-              <p className="text-sm text-gray-600 mb-1">Total This Month</p>
+              <p className="text-sm text-gray-600 mb-1">{t.expense.totalThisMonth || 'Total This Month'}</p>
               <p className="text-2xl font-bold text-gray-900">
                 {formatCurrency((stats.totalAmount || 0) / 100)}
               </p>
@@ -252,13 +254,13 @@ const Expenses: React.FC = () => {
           </Card>
           <Card>
             <div className="p-4">
-              <p className="text-sm text-gray-600 mb-1">Number of Expenses</p>
+              <p className="text-sm text-gray-600 mb-1">{t.expense.numberOfExpenses || 'Number of Expenses'}</p>
               <p className="text-2xl font-bold text-gray-900">{stats.totalCount || 0}</p>
             </div>
           </Card>
           <Card>
             <div className="p-4">
-              <p className="text-sm text-gray-600 mb-1">Pending</p>
+              <p className="text-sm text-gray-600 mb-1">{t.expense.pending}</p>
               <p className="text-2xl font-bold text-yellow-600">
                 {stats.statusStats?.PENDING?.count || 0}
               </p>
@@ -266,7 +268,7 @@ const Expenses: React.FC = () => {
           </Card>
           <Card>
             <div className="p-4">
-              <p className="text-sm text-gray-600 mb-1">Approved</p>
+              <p className="text-sm text-gray-600 mb-1">{t.expense.approved}</p>
               <p className="text-2xl font-bold text-green-600">
                 {stats.statusStats?.APPROVED?.count || 0}
               </p>
@@ -280,36 +282,36 @@ const Expenses: React.FC = () => {
         filters={[
           {
             key: 'category',
-            label: 'Category',
+            label: t.expense.category,
             type: 'text',
-            placeholder: 'Filter by category'
+            placeholder: t.expense.filterByCategory || 'Filter by category'
           },
           {
             key: 'status',
-            label: 'Status',
+            label: t.expense.status,
             type: 'select',
             options: [
-              { value: 'PENDING', label: 'Pending' },
-              { value: 'APPROVED', label: 'Approved' },
-              { value: 'REJECTED', label: 'Rejected' },
-              { value: 'PAID', label: 'Paid' },
+              { value: 'PENDING', label: t.expense.pending },
+              { value: 'APPROVED', label: t.expense.approved },
+              { value: 'REJECTED', label: t.expense.rejected },
+              { value: 'PAID', label: t.expense.paid },
             ]
           },
           {
             key: 'startDate',
-            label: 'Start Date',
+            label: t.expense.startDate || 'Start Date',
             type: 'date'
           },
           {
             key: 'endDate',
-            label: 'End Date',
+            label: t.expense.endDate || 'End Date',
             type: 'date'
           },
           {
             key: 'search',
-            label: 'Search',
+            label: t.common.search || 'Search',
             type: 'text',
-            placeholder: 'Search by title or description'
+            placeholder: t.expense.searchByTitle || 'Search by title or description'
           }
         ]}
         onApplyFilters={setFilters}
@@ -325,13 +327,13 @@ const Expenses: React.FC = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No expenses yet</h3>
-            <p className="text-gray-600 mb-4">Get started by adding your first expense</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">{t.expense.noExpensesYet || 'No expenses yet'}</h3>
+            <p className="text-gray-600 mb-4">{t.expense.getStartedAdding || 'Get started by adding your first expense'}</p>
             <TouchButton
               variant="primary"
               onClick={handleCreateExpense}
             >
-              Add Expense
+              {t.expense.newExpense}
             </TouchButton>
           </div>
         </div>
@@ -345,7 +347,7 @@ const Expenses: React.FC = () => {
             columns={[
               {
                 key: 'title',
-                label: 'Expense',
+                label: t.expense.titleLabel || 'Expense',
                 sortable: true,
                 priority: 'high',
                 render: (value, row) => (
@@ -357,7 +359,7 @@ const Expenses: React.FC = () => {
               },
               {
                 key: 'amount',
-                label: 'Amount',
+                label: t.expense.amount,
                 sortable: true,
                 priority: 'high',
                 render: (value, row) => (
@@ -368,14 +370,14 @@ const Expenses: React.FC = () => {
               },
               {
                 key: 'expenseDate',
-                label: 'Date',
+                label: t.expense.date,
                 sortable: true,
                 priority: 'medium',
                 render: (value) => <span className="text-gray-600">{formatDate(value)}</span>
               },
               {
                 key: 'status',
-                label: 'Status',
+                label: t.expense.status,
                 sortable: true,
                 priority: 'medium',
                 render: (value) => (
@@ -386,7 +388,7 @@ const Expenses: React.FC = () => {
               },
               {
                 key: 'actions' as any,
-                label: 'Actions',
+                label: t.expense.actions,
                 render: (_, row) => (
                   <div className="flex items-center space-x-2">
                     <TouchButton
@@ -397,7 +399,7 @@ const Expenses: React.FC = () => {
                         navigate(`/expenses/${row.id}`)
                       }}
                     >
-                      View
+                      {t.expense.view}
                     </TouchButton>
                     <TouchButton
                       variant="outline"
@@ -408,15 +410,15 @@ const Expenses: React.FC = () => {
                       }}
                       className="text-red-600 hover:text-red-700 hover:bg-red-50"
                     >
-                      Delete
+                      {t.common.delete}
                     </TouchButton>
                   </div>
                 )
               }
             ]}
-            title="Expense List"
+            title={t.expense.expenseList || 'Expense List'}
             searchable={true}
-            searchPlaceholder="Search expenses..."
+            searchPlaceholder={t.expense.searchExpenses || 'Search expenses...'}
             pagination={true}
             pageSize={8}
             onRowClick={(row) => navigate(`/expenses/${row.id}`)}
@@ -432,7 +434,7 @@ const Expenses: React.FC = () => {
             columns={[
               {
                 key: 'title',
-                label: 'Expense',
+                label: t.expense.titleLabel || 'Expense',
                 sortable: true,
                 render: (value, row) => (
                   <div>
@@ -445,13 +447,13 @@ const Expenses: React.FC = () => {
               },
               {
                 key: 'category',
-                label: 'Category',
+                label: t.expense.category,
                 sortable: true,
                 render: (value) => <span className="text-gray-600">{value}</span>
               },
               {
                 key: 'amount',
-                label: 'Amount',
+                label: t.expense.amount,
                 sortable: true,
                 render: (value, row) => (
                   <span className="font-medium text-gray-900">
@@ -461,13 +463,13 @@ const Expenses: React.FC = () => {
               },
               {
                 key: 'expenseDate',
-                label: 'Date',
+                label: t.expense.date,
                 sortable: true,
                 render: (value) => <span className="text-gray-600">{formatDate(value)}</span>
               },
               {
                 key: 'status',
-                label: 'Status',
+                label: t.expense.status,
                 sortable: true,
                 render: (value) => (
                   <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(value)}`}>
@@ -477,7 +479,7 @@ const Expenses: React.FC = () => {
               },
               {
                 key: 'actions' as any,
-                label: 'Actions',
+                label: t.expense.actions,
                 render: (_, row) => (
                   <div className="flex items-center space-x-2">
                     <Button
@@ -505,9 +507,9 @@ const Expenses: React.FC = () => {
                 )
               }
             ]}
-            title="Expense List"
+            title={t.expense.expenseList || 'Expense List'}
             searchable={true}
-            searchPlaceholder="Search expenses..."
+            searchPlaceholder={t.expense.searchExpenses || 'Search expenses...'}
             pagination={true}
             pageSize={10}
             onRowClick={(row) => navigate(`/expenses/${row.id}`)}
@@ -519,21 +521,21 @@ const Expenses: React.FC = () => {
       <Modal
         isOpen={showExportModal}
         onClose={() => setShowExportModal(false)}
-        title="Export Expenses"
+        title={t.expense.exportExpenses || 'Export Expenses'}
         size="md"
       >
         <div className="p-6">
           <div className="space-y-4">
             <div>
               <p className="text-sm text-gray-600 mb-4">
-                Export expenses as a ZIP file containing PDF summary report, Excel spreadsheet, and all receipt files.
+                {t.expense.exportExpenses || 'Export expenses as a ZIP file containing PDF summary report, Excel spreadsheet, and all receipt files.'}
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Start Date *
+                  {t.expense.startDate || 'Start Date'} *
                 </label>
                 <input
                   type="date"
@@ -545,7 +547,7 @@ const Expenses: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  End Date *
+                  {t.expense.endDate || 'End Date'} *
                 </label>
                 <input
                   type="date"
@@ -559,12 +561,12 @@ const Expenses: React.FC = () => {
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <p className="text-sm text-blue-800">
-                <strong>Export includes:</strong>
+                <strong>{t.expense.exportIncludes || 'Export includes:'}</strong>
               </p>
               <ul className="text-sm text-blue-700 mt-2 list-disc list-inside space-y-1">
-                <li>PDF summary report with totals and category breakdown</li>
-                <li>Excel spreadsheet with all expense details</li>
-                <li>All receipt files organized by category</li>
+                <li>{t.expense.exportIncludesPdf || 'PDF summary report with totals and category breakdown'}</li>
+                <li>{t.expense.exportIncludesExcel || 'Excel spreadsheet with all expense details'}</li>
+                <li>{t.expense.exportIncludesReceipts || 'All receipt files organized by category'}</li>
               </ul>
             </div>
 
@@ -574,13 +576,13 @@ const Expenses: React.FC = () => {
                 onClick={() => setShowExportModal(false)}
                 disabled={exportLoading}
               >
-                Cancel
+                {t.common.cancel}
               </Button>
               <Button
                 variant="primary"
                 onClick={async () => {
                   if (!exportDateRange.start || !exportDateRange.end) {
-                    showError('Export Failed', 'Please select start and end dates')
+                    showError(t.expense.exportFailed || 'Export Failed', t.expense.selectDates || 'Please select start and end dates')
                     return
                   }
 
@@ -598,11 +600,11 @@ const Expenses: React.FC = () => {
                     document.body.removeChild(link)
                     window.URL.revokeObjectURL(url)
 
-                    showSuccess('Export Successful', 'Expenses exported successfully!')
+                    showSuccess(t.expense.exportSuccessful || 'Export Successful', t.expense.exportSuccessful || 'Expenses exported successfully!')
                     setShowExportModal(false)
                   } catch (error: any) {
                     console.error('Export error:', error)
-                    showError('Export Failed', error.response?.data?.error || 'Failed to export expenses. Please try again.')
+                    showError(t.expense.exportFailed || 'Export Failed', error.response?.data?.error || t.expense.exportFailed || 'Failed to export expenses. Please try again.')
                   } finally {
                     setExportLoading(false)
                   }
@@ -612,14 +614,14 @@ const Expenses: React.FC = () => {
                 {exportLoading ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline-block"></div>
-                    Exporting...
+                    {t.expense.exporting || 'Exporting...'}
                   </>
                 ) : (
                   <>
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
-                    Export ZIP
+                    {t.expense.exportZIP || 'Export ZIP'}
                   </>
                 )}
               </Button>
@@ -636,10 +638,10 @@ const Expenses: React.FC = () => {
           handleDeleteExpense(deleteModal.expense)
           setDeleteModal({ isOpen: false, expense: null })
         }}
-        title="Delete Expense"
-        message={`Are you sure you want to delete "${deleteModal.expense?.title}"? This action cannot be undone and all associated files will be deleted.`}
-        confirmText="Delete"
-        cancelText="Cancel"
+        title={t.expense.deleteExpense || 'Delete Expense'}
+        message={t.expense.deleteConfirmation?.replace('{{title}}', deleteModal.expense?.title || '') || `Are you sure you want to delete "${deleteModal.expense?.title}"? This action cannot be undone and all associated files will be deleted.`}
+        confirmText={t.common.delete}
+        cancelText={t.common.cancel}
         type="danger"
       />
     </div>

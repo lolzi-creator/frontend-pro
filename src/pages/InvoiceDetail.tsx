@@ -4,11 +4,13 @@ import { Card, CardHeader, CardTitle, CardContent } from '../components/Card'
 import Button from '../components/Button'
 import { apiClient } from '../lib/api'
 import { useToast } from '../contexts/ToastContext'
+import { useLanguage } from '../contexts/LanguageContext'
 
 const InvoiceDetail: React.FC = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const { showToast } = useToast()
+  const { t } = useLanguage()
   
   const [invoice, setInvoice] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -52,7 +54,7 @@ const InvoiceDetail: React.FC = () => {
             if (isFullyPaid) {
               setReminderEligibility({
                 canSend: false,
-                reason: 'Invoice is fully paid'
+                reason: t.invoice.invoiceFullyPaid || 'Invoice is fully paid'
               })
             } else if (daysSinceDue < 1) {
               // Reminder can be sent 1 day after the due date
@@ -61,14 +63,14 @@ const InvoiceDetail: React.FC = () => {
                 const daysUntilDue = Math.abs(daysSinceDue)
                 setReminderEligibility({
                   canSend: false,
-                  reason: `Reminders can only be sent after the due date has passed`,
+                  reason: t.invoice.remindersOnlyAfterDueDate || `Reminders can only be sent after the due date has passed`,
                   daysUntilEligible: daysUntilDue + 1 // Days until due date + 1 day after
                 })
               } else {
                 // Due date is today, can send tomorrow
                 setReminderEligibility({
                   canSend: false,
-                  reason: `Reminders can be sent starting 1 day after the due date`,
+                  reason: t.invoice.remindersStartingOneDayAfter || `Reminders can be sent starting 1 day after the due date`,
                   daysUntilEligible: 1
                 })
               }
@@ -80,7 +82,7 @@ const InvoiceDetail: React.FC = () => {
           } else if (invoiceData.status === 'CANCELLED') {
             setReminderEligibility({
               canSend: false,
-              reason: 'Cannot send reminders for cancelled invoices'
+              reason: t.invoice.cannotSendReminderCancelled || 'Cannot send reminders for cancelled invoices'
             })
           } else {
             setReminderEligibility({
@@ -88,7 +90,7 @@ const InvoiceDetail: React.FC = () => {
             })
           }
         } else {
-          showToast({ type: 'error', title: 'Failed to load invoice' })
+          showToast({ type: 'error', title: t.invoice.failedToLoad || 'Failed to load invoice' })
           navigate('/invoices')
         }
       } catch (error) {
@@ -122,7 +124,7 @@ const InvoiceDetail: React.FC = () => {
       
       // Check if we can send a reminder
       if (currentLevel >= 3) {
-        showToast({ type: 'warning', title: 'Maximum reminder level reached' })
+        showToast({ type: 'warning', title: t.invoice.maxReminderLevelReached || 'Maximum reminder level reached' })
         return
       }
       
@@ -133,8 +135,8 @@ const InvoiceDetail: React.FC = () => {
         const isTestMode = response.data?.testMode
         showToast({ 
           type: 'success', 
-          title: `Reminder ${nextLevel} sent successfully${isTestMode ? ' (test mode)' : ''}`,
-          message: isTestMode ? 'Email sent to mksrhkov@gmail.com for testing' : undefined
+          title: `${t.invoice.reminder || 'Reminder'} ${nextLevel} ${t.invoice.sentSuccessfully || 'sent successfully'}${isTestMode ? ` (${t.invoice.testMode || 'test mode'})` : ''}`,
+          message: isTestMode ? (t.invoice.emailSentForTesting || 'Email sent to mksrhkov@gmail.com for testing') : undefined
         })
         // Refresh invoice data
         const updatedInvoice = await apiClient.getInvoice(id)
@@ -156,7 +158,7 @@ const InvoiceDetail: React.FC = () => {
             if (isFullyPaid) {
               setReminderEligibility({
                 canSend: false,
-                reason: 'Invoice is fully paid'
+                reason: t.invoice.invoiceFullyPaid || 'Invoice is fully paid'
               })
             } else if (daysSinceDue < 1) {
               // Reminder can be sent 1 day after the due date
@@ -165,14 +167,14 @@ const InvoiceDetail: React.FC = () => {
                 const daysUntilDue = Math.abs(daysSinceDue)
                 setReminderEligibility({
                   canSend: false,
-                  reason: `Reminders can only be sent after the due date has passed`,
+                  reason: t.invoice.remindersOnlyAfterDueDate || `Reminders can only be sent after the due date has passed`,
                   daysUntilEligible: daysUntilDue + 1 // Days until due date + 1 day after
                 })
               } else {
                 // Due date is today, can send tomorrow
                 setReminderEligibility({
                   canSend: false,
-                  reason: `Reminders can be sent starting 1 day after the due date`,
+                  reason: t.invoice.remindersStartingOneDayAfter || `Reminders can be sent starting 1 day after the due date`,
                   daysUntilEligible: 1
                 })
               }
@@ -185,10 +187,10 @@ const InvoiceDetail: React.FC = () => {
         }
       } else {
         // Handle error response
-        const errorMessage = response.error || 'Failed to send invoice reminder'
+        const errorMessage = response.error || (t.invoice.failedToSendReminder || 'Failed to send invoice reminder')
         showToast({ 
           type: 'warning', 
-          title: 'Cannot Send Reminder',
+          title: t.invoice.cannotSendReminder || 'Cannot Send Reminder',
           message: errorMessage
         })
       }
@@ -200,25 +202,25 @@ const InvoiceDetail: React.FC = () => {
       if (errorMessage.includes('30 days') || errorMessage.includes('30 days')) {
         showToast({ 
           type: 'warning', 
-          title: 'Reminder Not Available Yet',
+          title: t.invoice.reminderNotAvailableYet || 'Reminder Not Available Yet',
           message: errorMessage
         })
       } else if (errorMessage.includes('fully paid')) {
         showToast({ 
           type: 'info', 
-          title: 'Invoice Already Paid',
+          title: t.invoice.invoiceAlreadyPaid || 'Invoice Already Paid',
           message: errorMessage
         })
       } else if (errorMessage.includes('cancelled')) {
         showToast({ 
           type: 'warning', 
-          title: 'Cannot Send Reminder',
+          title: t.invoice.cannotSendReminder || 'Cannot Send Reminder',
           message: errorMessage
         })
       } else {
         showToast({ 
           type: 'warning', 
-          title: 'Cannot Send Reminder',
+          title: t.invoice.cannotSendReminder || 'Cannot Send Reminder',
           message: errorMessage
         })
       }
@@ -246,10 +248,10 @@ const InvoiceDetail: React.FC = () => {
       document.body.removeChild(link)
       window.URL.revokeObjectURL(url)
       
-      showToast({ type: 'success', title: 'PDF downloaded successfully' })
+        showToast({ type: 'success', title: t.invoice.pdfDownloadedSuccess || 'PDF downloaded successfully' })
     } catch (error) {
       console.error('Error downloading PDF:', error)
-      showToast({ type: 'error', title: 'Failed to download PDF' })
+          showToast({ type: 'error', title: t.invoice.failedToDownloadPDF || 'Failed to download PDF' })
     } finally {
       setActionLoading(null)
     }
@@ -273,10 +275,10 @@ const InvoiceDetail: React.FC = () => {
         window.URL.revokeObjectURL(url)
       }, 1000)
       
-      showToast({ type: 'success', title: 'PDF opened in new tab' })
+      showToast({ type: 'success', title: t.invoice.pdfOpenedInNewTab || 'PDF opened in new tab' })
     } catch (error) {
       console.error('Error viewing PDF:', error)
-      showToast({ type: 'error', title: 'Failed to open PDF' })
+        showToast({ type: 'error', title: t.invoice.failedToOpenPDF || 'Failed to open PDF' })
     } finally {
       setActionLoading(null)
     }
@@ -297,10 +299,10 @@ const InvoiceDetail: React.FC = () => {
       
       const response = await apiClient.createInvoice(duplicateData)
       if (response.success) {
-        showToast({ type: 'success', title: 'Invoice duplicated successfully' })
+        showToast({ type: 'success', title: t.invoice.invoiceDuplicatedSuccess || 'Invoice duplicated successfully' })
         navigate(`/invoices/${response.data.id}`)
       } else {
-        showToast({ type: 'error', title: 'Failed to duplicate invoice' })
+        showToast({ type: 'error', title: t.invoice.failedToDuplicateInvoice || 'Failed to duplicate invoice' })
       }
     } catch (error) {
       console.error('Error duplicating invoice:', error)
@@ -317,14 +319,14 @@ const InvoiceDetail: React.FC = () => {
       setActionLoading('mark-paid')
       const response = await apiClient.updateInvoiceStatus(id, 'PAID')
       if (response.success) {
-        showToast({ type: 'success', title: 'Invoice marked as paid' })
+        showToast({ type: 'success', title: t.invoice.invoiceMarkedAsPaid || 'Invoice marked as paid' })
         // Refresh invoice data
         const updatedInvoice = await apiClient.getInvoice(id)
         if (updatedInvoice.success) {
           setInvoice(updatedInvoice.data.invoice)
         }
       } else {
-        showToast({ type: 'error', title: 'Failed to mark invoice as paid' })
+        showToast({ type: 'error', title: t.invoice.failedToMarkAsPaid || 'Failed to mark invoice as paid' })
       }
     } catch (error) {
       console.error('Error marking invoice as paid:', error)
@@ -341,14 +343,14 @@ const InvoiceDetail: React.FC = () => {
       setActionLoading('mark-open')
       const response = await apiClient.updateInvoiceStatus(id, 'OPEN')
       if (response.success) {
-        showToast({ type: 'success', title: 'Invoice marked as open' })
+        showToast({ type: 'success', title: t.invoice.invoiceMarkedAsOpen || 'Invoice marked as open' })
         // Refresh invoice data
         const updatedInvoice = await apiClient.getInvoice(id)
         if (updatedInvoice.success) {
           setInvoice(updatedInvoice.data.invoice)
         }
       } else {
-        showToast({ type: 'error', title: 'Failed to mark invoice as open' })
+        showToast({ type: 'error', title: t.invoice.failedToMarkAsOpen || 'Failed to mark invoice as open' })
       }
     } catch (error) {
       console.error('Error marking invoice as open:', error)
@@ -365,14 +367,14 @@ const InvoiceDetail: React.FC = () => {
       setActionLoading('mark-cancelled')
       const response = await apiClient.updateInvoiceStatus(id, 'CANCELLED')
       if (response.success) {
-        showToast({ type: 'success', title: 'Invoice marked as cancelled' })
+        showToast({ type: 'success', title: t.invoice.invoiceMarkedAsCancelled || 'Invoice marked as cancelled' })
         // Refresh invoice data
         const updatedInvoice = await apiClient.getInvoice(id)
         if (updatedInvoice.success) {
           setInvoice(updatedInvoice.data.invoice)
         }
       } else {
-        showToast({ type: 'error', title: 'Failed to mark invoice as cancelled' })
+        showToast({ type: 'error', title: t.invoice.failedToMarkAsCancelled || 'Failed to mark invoice as cancelled' })
       }
     } catch (error) {
       console.error('Error marking invoice as cancelled:', error)
@@ -385,7 +387,7 @@ const InvoiceDetail: React.FC = () => {
   const handleDelete = async () => {
     if (!id) return
     
-    if (!window.confirm('Are you sure you want to delete this invoice? This action cannot be undone.')) {
+    if (!window.confirm(t.invoice.deleteConfirmationThis || 'Are you sure you want to delete this invoice? This action cannot be undone.')) {
       return
     }
     
@@ -393,10 +395,10 @@ const InvoiceDetail: React.FC = () => {
       setActionLoading('delete')
       const response = await apiClient.deleteInvoice(id)
       if (response.success) {
-        showToast({ type: 'success', title: 'Invoice deleted successfully' })
+        showToast({ type: 'success', title: t.invoice.invoiceDeletedSuccess || 'Invoice deleted successfully' })
         navigate('/invoices')
       } else {
-        showToast({ type: 'error', title: 'Failed to delete invoice' })
+        showToast({ type: 'error', title: t.invoice.failedToDeleteInvoice || 'Failed to delete invoice' })
       }
     } catch (error) {
       console.error('Error deleting invoice:', error)
@@ -407,11 +409,11 @@ const InvoiceDetail: React.FC = () => {
   }
 
   const handleAddFile = () => {
-    showToast({ type: 'info', title: 'File upload not yet implemented' })
+    showToast({ type: 'info', title: t.invoice.fileUploadNotImplemented || 'File upload not yet implemented' })
   }
 
   const handleDownloadFile = (fileId: string) => {
-    showToast({ type: 'info', title: 'File download not yet implemented' })
+    showToast({ type: 'info', title: t.invoice.fileDownloadNotImplemented || 'File download not yet implemented' })
   }
 
   const handleSaveNotes = async () => {
@@ -422,7 +424,7 @@ const InvoiceDetail: React.FC = () => {
       const response = await apiClient.updateInvoice(id, { internalNotes: notes })
       
       if (response.success) {
-        showToast({ type: 'success', title: 'Notes updated successfully' })
+        showToast({ type: 'success', title: t.invoice.notesUpdatedSuccess || 'Notes updated successfully' })
         setIsEditingNotes(false)
         // Refresh invoice data
         const updatedInvoice = await apiClient.getInvoice(id)
@@ -431,7 +433,7 @@ const InvoiceDetail: React.FC = () => {
           setNotes(updatedInvoice.data.invoice.internalNotes || '')
         }
       } else {
-        showToast({ type: 'error', title: 'Failed to update notes' })
+        showToast({ type: 'error', title: t.invoice.failedToUpdateNotes || 'Failed to update notes' })
       }
     } catch (error) {
       console.error('Error updating notes:', error)
@@ -456,7 +458,7 @@ const InvoiceDetail: React.FC = () => {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
-            <p className="text-gray-600 mt-4">Loading invoice...</p>
+            <p className="text-gray-600 mt-4">{t.invoice.loadingInvoice || 'Loading invoice...'}</p>
           </div>
         </div>
       </div>
@@ -467,8 +469,8 @@ const InvoiceDetail: React.FC = () => {
     return (
       <div className="p-8">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Invoice not found</h2>
-          <Button onClick={() => navigate('/invoices')}>Back to Invoices</Button>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">{t.invoice.invoiceNotFound || 'Invoice not found'}</h2>
+          <Button onClick={() => navigate('/invoices')}>{t.invoice.backToInvoices || 'Back to Invoices'}</Button>
         </div>
       </div>
     )
@@ -523,13 +525,13 @@ const InvoiceDetail: React.FC = () => {
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
-              Back to Invoices
+              {t.common.back}
             </Button>
             <div>
               <h2 className="text-3xl font-bold text-gray-900" style={{fontFamily: 'Poppins'}}>
                 {invoice.number}
               </h2>
-              <p className="text-gray-600">Invoice Details</p>
+              <p className="text-gray-600">{t.invoice.title}</p>
             </div>
           </div>
           <div className="flex items-center space-x-3">
@@ -542,7 +544,7 @@ const InvoiceDetail: React.FC = () => {
               onClick={handleEdit}
               disabled={actionLoading !== null}
             >
-              Edit
+              {t.invoice.edit}
             </Button>
             <Button 
               variant="primary" 
@@ -550,7 +552,7 @@ const InvoiceDetail: React.FC = () => {
               disabled={actionLoading !== null || !reminderEligibility?.canSend}
               title={reminderEligibility?.reason || ''}
             >
-              {actionLoading === 'send-email' ? 'Sending...' : `Send Reminder ${(invoice?.reminderLevel || 0) + 1}`}
+              {actionLoading === 'send-email' ? t.common.loading : `${t.invoice.reminder} ${(invoice?.reminderLevel || 0) + 1}`}
             </Button>
           </div>
         </div>
@@ -563,11 +565,11 @@ const InvoiceDetail: React.FC = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <div className="flex-1">
-                <h4 className="text-sm font-medium text-blue-900">Reminder Not Available</h4>
+                <h4 className="text-sm font-medium text-blue-900">{t.invoice.reminderNotAvailable || 'Reminder Not Available'}</h4>
                 <p className="text-sm text-blue-700 mt-1">
                   {reminderEligibility.reason}
                   {reminderEligibility.daysUntilEligible && (
-                    <span className="font-semibold"> You can send a reminder in {reminderEligibility.daysUntilEligible} {reminderEligibility.daysUntilEligible === 1 ? 'day' : 'days'}.</span>
+                    <span className="font-semibold"> {t.invoice.reminderAvailableIn || 'You can send a reminder in'} {reminderEligibility.daysUntilEligible} {reminderEligibility.daysUntilEligible === 1 ? (t.invoice.day || 'day') : (t.invoice.days || 'days')}.</span>
                   )}
                 </p>
               </div>
@@ -585,25 +587,25 @@ const InvoiceDetail: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Company Info */}
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">From</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">{t.invoice.from || 'From'}</h3>
                   <div className="text-sm text-gray-600">
-                    <p className="font-medium text-gray-900">{invoice.company?.name || 'Company Name'}</p>
-                    <p className="whitespace-pre-line">{invoice.company?.address || 'Company Address'}</p>
-                    <p>VAT: {invoice.company?.vatNumber || 'N/A'}</p>
-                    <p>Phone: {invoice.company?.phone || 'N/A'}</p>
-                    <p>Email: {invoice.company?.email || 'N/A'}</p>
+                    <p className="font-medium text-gray-900">{invoice.company?.name || (t.invoice.companyName || 'Company Name')}</p>
+                    <p className="whitespace-pre-line">{invoice.company?.address || (t.invoice.companyAddress || 'Company Address')}</p>
+                    <p>{t.invoice.vat}: {invoice.company?.vatNumber || (t.invoice.na || 'N/A')}</p>
+                    <p>{t.invoice.phone || 'Phone'}: {invoice.company?.phone || (t.invoice.na || 'N/A')}</p>
+                    <p>{t.invoice.email || 'Email'}: {invoice.company?.email || (t.invoice.na || 'N/A')}</p>
                   </div>
                 </div>
 
                 {/* Customer Info */}
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Bill To</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">{t.invoice.billTo || 'Bill To'}</h3>
                   <div className="text-sm text-gray-600">
-                    <p className="font-medium text-gray-900">{invoice.customer?.name || 'Customer Name'}</p>
-                    <p className="whitespace-pre-line">{invoice.customer?.address || 'Customer Address'}</p>
-                    <p>VAT: {invoice.customer?.vatNumber || 'N/A'}</p>
-                    <p>Phone: {invoice.customer?.phone || 'N/A'}</p>
-                    <p>Email: {invoice.customer?.email || 'N/A'}</p>
+                    <p className="font-medium text-gray-900">{invoice.customer?.name || (t.invoice.customerName || 'Customer Name')}</p>
+                    <p className="whitespace-pre-line">{invoice.customer?.address || (t.invoice.customerAddress || 'Customer Address')}</p>
+                    <p>{t.invoice.vat}: {invoice.customer?.vatNumber || (t.invoice.na || 'N/A')}</p>
+                    <p>{t.invoice.phone || 'Phone'}: {invoice.customer?.phone || (t.invoice.na || 'N/A')}</p>
+                    <p>{t.invoice.email || 'Email'}: {invoice.customer?.email || (t.invoice.na || 'N/A')}</p>
                   </div>
                 </div>
               </div>
@@ -611,38 +613,38 @@ const InvoiceDetail: React.FC = () => {
               {/* Invoice Details */}
               <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div>
-                  <p className="text-gray-500">Invoice Date</p>
-                  <p className="font-medium text-gray-900">{invoice.date ? new Date(invoice.date).toLocaleDateString() : 'N/A'}</p>
+                  <p className="text-gray-500">{t.invoice.date}</p>
+                  <p className="font-medium text-gray-900">{invoice.date ? new Date(invoice.date).toLocaleDateString() : (t.invoice.na || 'N/A')}</p>
                 </div>
                 <div>
-                  <p className="text-gray-500">Due Date</p>
+                  <p className="text-gray-500">{t.invoice.dueDate}</p>
                   <p className="font-medium text-gray-900">{invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'N/A'}</p>
                 </div>
                 <div>
-                  <p className="text-gray-500">Total Amount</p>
+                  <p className="text-gray-500">{t.invoice.totalAmount || 'Total Amount'}</p>
                   <p className="font-medium text-gray-900">CHF {invoice.total ? invoice.total.toFixed(2) : '0.00'}</p>
                 </div>
                 <div>
-                  <p className="text-gray-500">Paid Amount</p>
+                  <p className="text-gray-500">{t.invoice.paidAmount || 'Paid Amount'}</p>
                   <p className="font-medium text-gray-900">CHF {invoice.paidAmount ? invoice.paidAmount.toFixed(2) : '0.00'}</p>
                 </div>
                 {invoice.qrReference && (
                   <div className="md:col-span-2">
-                    <p className="text-gray-500">Payment Reference (QR)</p>
+                    <p className="text-gray-500">{t.invoice.paymentReferenceQR || 'Payment Reference (QR)'}</p>
                     <p className="font-medium text-gray-900 break-all tracking-wide">{invoice.qrReference}</p>
                   </div>
                 )}
                 <div>
-                  <p className="text-gray-500">Reminder Level</p>
+                  <p className="text-gray-500">{t.invoice.reminderLevel || 'Reminder Level'}</p>
                   <p className="font-medium text-gray-900">
-                    {invoice.reminderLevel ? `Level ${invoice.reminderLevel}` : 'None'}
+                    {invoice.reminderLevel ? `${t.invoice.level || 'Level'} ${invoice.reminderLevel}` : (t.invoice.none || 'None')}
                     {invoice.lastReminderAt && (
                       <span className="text-sm text-gray-500 block">
-                        Last sent: {new Date(invoice.lastReminderAt).toLocaleDateString()}
+                        {t.invoice.lastSent || 'Last sent'}: {new Date(invoice.lastReminderAt).toLocaleDateString()}
                       </span>
                     )}
                     <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded mt-1 inline-block">
-                      Test Mode: Emails sent to mksrhkov@gmail.com
+                      {t.invoice.testMode || 'Test Mode'}: {t.invoice.emailsSentForTesting || 'Emails sent to mksrhkov@gmail.com'}
                     </span>
                   </p>
                 </div>
@@ -653,17 +655,17 @@ const InvoiceDetail: React.FC = () => {
           {/* Line Items */}
           <Card>
             <CardHeader>
-              <CardTitle>Line Items</CardTitle>
+              <CardTitle>{t.invoice.lineItems || 'Line Items'}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-gray-200">
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Description</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Qty</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Unit Price</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Total</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-600">{t.invoice.description}</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-600">{t.invoice.quantity}</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-600">{t.invoice.unitPrice}</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-600">{t.invoice.total}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -687,7 +689,7 @@ const InvoiceDetail: React.FC = () => {
                   <tfoot>
                     <tr className="border-t border-gray-200">
                       <td colSpan={3} className="py-4 px-4 text-right font-medium text-gray-900">
-                        Subtotal
+                        {t.invoice.subtotal}
                       </td>
                       <td className="py-4 px-4 font-medium text-gray-900">
                         CHF {invoice.subtotal ? invoice.subtotal.toFixed(2) : '0.00'}
@@ -695,7 +697,7 @@ const InvoiceDetail: React.FC = () => {
                     </tr>
                     <tr>
                       <td colSpan={3} className="py-4 px-4 text-right font-medium text-gray-900">
-                        VAT ({invoice.vatRate}%)
+                        {t.invoice.vat} ({invoice.vatRate}%)
                       </td>
                       <td className="py-4 px-4 font-medium text-gray-900">
                         CHF {invoice.vatAmount ? invoice.vatAmount.toFixed(2) : '0.00'}
@@ -703,7 +705,7 @@ const InvoiceDetail: React.FC = () => {
                     </tr>
                     <tr className="border-t-2 border-gray-200">
                       <td colSpan={3} className="py-4 px-4 text-right font-bold text-lg text-gray-900">
-                        Total
+                        {t.invoice.total}
                       </td>
                       <td className="py-4 px-4 font-bold text-lg text-gray-900">
                         CHF {invoice.total ? invoice.total.toFixed(2) : '0.00'}
@@ -718,7 +720,7 @@ const InvoiceDetail: React.FC = () => {
           {/* Matched Payments */}
           <Card>
             <CardHeader>
-              <CardTitle>Matched Payments</CardTitle>
+              <CardTitle>{t.invoice.matchedPayments || 'Matched Payments'}</CardTitle>
             </CardHeader>
             <CardContent>
               {invoice.payments && invoice.payments.length > 0 ? (
@@ -737,7 +739,7 @@ const InvoiceDetail: React.FC = () => {
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
-                            <p className="font-medium text-gray-900">CHF {((payment.amount || 0) / 100).toFixed(2)}</p>
+                            <p className="font-medium text-gray-900">CHF {(payment.amount || 0).toFixed(2)}</p>
                             {payment.confidence && (
                               <span className={`px-2 py-0.5 text-xs font-medium rounded ${
                                 payment.confidence === 'HIGH' ? 'bg-green-100 text-green-800' :
@@ -751,7 +753,7 @@ const InvoiceDetail: React.FC = () => {
                           <div className="flex items-center gap-4 text-xs text-gray-600 mt-1">
                             <span>{payment.valueDate ? new Date(payment.valueDate).toLocaleDateString() : 'N/A'}</span>
                             {payment.reference && (
-                              <span className="font-mono">Ref: {payment.reference}</span>
+                              <span className="font-mono">{t.invoice.reference || 'Ref'}: {payment.reference}</span>
                             )}
                             {payment.description && (
                               <span className="truncate max-w-xs" title={payment.description}>{payment.description}</span>
@@ -767,20 +769,20 @@ const InvoiceDetail: React.FC = () => {
                           navigate(`/payments/${payment.id}`)
                         }}
                       >
-                        View
+                        {t.invoice.view}
                       </Button>
                     </div>
                   ))}
                   <div className="pt-3 border-t border-gray-200">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-gray-700">Total Paid</span>
+                      <span className="text-sm font-medium text-gray-700">{t.invoice.totalPaid || 'Total Paid'}</span>
                       <span className="text-lg font-bold text-gray-900">
                         CHF {(invoice.paidAmount || 0).toFixed(2)} / CHF {(invoice.total || 0).toFixed(2)}
                       </span>
                     </div>
                     {invoice.paidAmount && invoice.total && invoice.paidAmount >= invoice.total && (
                       <div className="mt-2 text-sm text-green-600 font-medium">
-                        Invoice fully paid
+                        {t.invoice.invoiceFullyPaid}
                       </div>
                     )}
                   </div>
@@ -790,8 +792,8 @@ const InvoiceDetail: React.FC = () => {
                   <svg className="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  <p>No payments matched to this invoice yet</p>
-                  <p className="text-xs mt-1">Payments will appear here once matched</p>
+                  <p>{t.invoice.noPaymentsMatched || 'No payments matched to this invoice yet'}</p>
+                  <p className="text-xs mt-1">{t.invoice.paymentsWillAppear || 'Payments will appear here once matched'}</p>
                 </div>
               )}
             </CardContent>
@@ -800,10 +802,10 @@ const InvoiceDetail: React.FC = () => {
           {/* Notes */}
           <Card>
             <CardHeader>
-              <CardTitle>Notes</CardTitle>
+              <CardTitle>{t.invoice.notes || 'Notes'}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-700">{invoice.notes || 'No notes'}</p>
+              <p className="text-gray-700">{invoice.notes || (t.invoice.noNotes || 'No notes')}</p>
             </CardContent>
           </Card>
         </div>
@@ -813,7 +815,7 @@ const InvoiceDetail: React.FC = () => {
           {/* Actions */}
           <Card>
             <CardHeader>
-              <CardTitle>Actions</CardTitle>
+              <CardTitle>{t.invoice.actions}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <Button 
@@ -826,14 +828,14 @@ const InvoiceDetail: React.FC = () => {
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
-                {actionLoading === 'send-email' ? 'Sending...' : `Send Reminder ${(invoice?.reminderLevel || 0) + 1}`}
+                {actionLoading === 'send-email' ? (t.invoice.sending || 'Sending...') : `${t.invoice.reminder} ${(invoice?.reminderLevel || 0) + 1}`}
               </Button>
               {reminderEligibility && !reminderEligibility.canSend && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
                   <p className="text-blue-900 font-medium">{reminderEligibility.reason}</p>
                   {reminderEligibility.daysUntilEligible && (
                     <p className="text-blue-700 mt-1">
-                      Available in {reminderEligibility.daysUntilEligible} {reminderEligibility.daysUntilEligible === 1 ? 'day' : 'days'}.
+                      {t.invoice.availableIn || 'Available in'} {reminderEligibility.daysUntilEligible} {reminderEligibility.daysUntilEligible === 1 ? (t.invoice.day || 'day') : (t.invoice.days || 'days')}.
                     </p>
                   )}
                 </div>
@@ -847,7 +849,7 @@ const InvoiceDetail: React.FC = () => {
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                {actionLoading === 'download-pdf' ? 'Generating...' : 'Download PDF'}
+                {actionLoading === 'download-pdf' ? (t.invoice.generating || 'Generating...') : (t.invoice.downloadPDF || 'Download PDF')}
               </Button>
               <Button 
                 variant="outline" 
@@ -858,7 +860,7 @@ const InvoiceDetail: React.FC = () => {
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-2m-5.5-5.5l-5 5m0 0l-2.5-2.5L5 13.5" />
                 </svg>
-                {actionLoading === 'duplicate' ? 'Duplicating...' : 'Duplicate'}
+                {actionLoading === 'duplicate' ? (t.invoice.duplicating || 'Duplicating...') : (t.invoice.duplicate || 'Duplicate')}
               </Button>
               <Button 
                 variant="outline" 
@@ -869,7 +871,7 @@ const InvoiceDetail: React.FC = () => {
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
-                {actionLoading === 'delete' ? 'Deleting...' : 'Delete'}
+                {actionLoading === 'delete' ? (t.invoice.deleting || 'Deleting...') : t.common.delete}
               </Button>
             </CardContent>
           </Card>
@@ -877,13 +879,13 @@ const InvoiceDetail: React.FC = () => {
           {/* Status Management */}
           <Card>
             <CardHeader>
-              <CardTitle>Status Management</CardTitle>
+              <CardTitle>{t.invoice.statusManagement || 'Status Management'}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {/* Current Status Display */}
               <div className="p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700">Current Status:</span>
+                  <span className="text-sm font-medium text-gray-700">{t.invoice.currentStatus || 'Current Status'}:</span>
                   <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(invoice.status)}`}>
                     {getStatusIcon(invoice.status)}
                     <span className="ml-1 capitalize">{invoice.status}</span>
@@ -903,7 +905,7 @@ const InvoiceDetail: React.FC = () => {
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    {actionLoading === 'mark-open' ? 'Updating...' : 'Mark as Open'}
+                    {actionLoading === 'mark-open' ? (t.invoice.updating || 'Updating...') : (t.invoice.markAsOpen || 'Mark as Open')}
                   </Button>
                 )}
 
@@ -918,7 +920,7 @@ const InvoiceDetail: React.FC = () => {
                       <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
-                      {actionLoading === 'mark-paid' ? 'Updating...' : 'Mark as Paid'}
+                      {actionLoading === 'mark-paid' ? (t.invoice.updating || 'Updating...') : (t.invoice.markAsPaid || 'Mark as Paid')}
                     </Button>
                     <Button 
                       variant="outline" 
@@ -929,7 +931,7 @@ const InvoiceDetail: React.FC = () => {
                       <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
-                      {actionLoading === 'mark-cancelled' ? 'Updating...' : 'Mark as Cancelled'}
+                      {actionLoading === 'mark-cancelled' ? (t.invoice.updating || 'Updating...') : (t.invoice.markAsCancelled || 'Mark as Cancelled')}
                     </Button>
                   </>
                 )}
@@ -945,7 +947,7 @@ const InvoiceDetail: React.FC = () => {
                       <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
-                      {actionLoading === 'mark-paid' ? 'Updating...' : 'Mark as Fully Paid'}
+                      {actionLoading === 'mark-paid' ? (t.invoice.updating || 'Updating...') : (t.invoice.markAsFullyPaid || 'Mark as Fully Paid')}
                     </Button>
                     <Button 
                       variant="outline" 
@@ -956,24 +958,24 @@ const InvoiceDetail: React.FC = () => {
                       <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
-                      {actionLoading === 'mark-cancelled' ? 'Updating...' : 'Mark as Cancelled'}
+                      {actionLoading === 'mark-cancelled' ? (t.invoice.updating || 'Updating...') : (t.invoice.markAsCancelled || 'Mark as Cancelled')}
                     </Button>
                   </>
                 )}
 
                 {(invoice.status === 'PAID' || invoice.status === 'CANCELLED') && (
                   <div className="text-center text-sm text-gray-500 py-2">
-                    No status changes available
+                    {t.invoice.noStatusChangesAvailable || 'No status changes available'}
                   </div>
                 )}
               </div>
 
               {/* Status Information */}
               <div className="text-xs text-gray-500 space-y-1">
-                <div>• <strong>Draft:</strong> Invoice is being prepared</div>
-                <div>• <strong>Open:</strong> Invoice has been sent to customer</div>
-                <div>• <strong>Paid:</strong> Invoice has been fully paid</div>
-                <div>• <strong>Cancelled:</strong> Invoice has been cancelled</div>
+                <div>• <strong>{t.invoice.draft}:</strong> {t.invoice.draftDescription || 'Invoice is being prepared'}</div>
+                <div>• <strong>{t.invoice.open || 'Open'}:</strong> {t.invoice.openDescription || 'Invoice has been sent to customer'}</div>
+                <div>• <strong>{t.invoice.paidStatus}:</strong> {t.invoice.paidDescription || 'Invoice has been fully paid'}</div>
+                <div>• <strong>{t.invoice.cancelled}:</strong> {t.invoice.cancelledDescription || 'Invoice has been cancelled'}</div>
               </div>
             </CardContent>
           </Card>
@@ -982,7 +984,7 @@ const InvoiceDetail: React.FC = () => {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Files</CardTitle>
+                <CardTitle>{t.invoice.files || 'Files'}</CardTitle>
                 <div className="flex space-x-2">
                   <Button 
                     variant="outline" 
@@ -994,13 +996,13 @@ const InvoiceDetail: React.FC = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                     </svg>
-                    {actionLoading === 'view-pdf' ? 'Opening...' : 'View PDF'}
+                    {actionLoading === 'view-pdf' ? (t.invoice.opening || 'Opening...') : (t.invoice.viewPDF || 'View PDF')}
                   </Button>
                   <Button variant="outline" size="sm" onClick={handleAddFile}>
                   <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
-                  Add
+                  {t.common.add || 'Add'}
                 </Button>
                 </div>
               </div>
@@ -1020,7 +1022,7 @@ const InvoiceDetail: React.FC = () => {
                         </div>
                         <div>
                           <p className="text-sm font-medium text-gray-900">{invoicePdf.fileName}</p>
-                          <p className="text-xs text-gray-500">Auto-generated PDF • Created when invoice was created</p>
+                          <p className="text-xs text-gray-500">{t.invoice.autoGeneratedPDF || 'Auto-generated PDF'} • {t.invoice.createdWhenCreated || 'Created when invoice was created'}</p>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -1031,7 +1033,7 @@ const InvoiceDetail: React.FC = () => {
                               size="sm" 
                               onClick={() => window.open(invoicePdf.downloadUrl, '_blank')}
                             >
-                              View
+                              {t.invoice.view}
                             </Button>
                             <Button 
                               variant="outline" 
@@ -1063,7 +1065,7 @@ const InvoiceDetail: React.FC = () => {
                               onClick={handleDownloadPDF}
                               disabled={actionLoading !== null}
                             >
-                              {actionLoading === 'download-pdf' ? 'Downloading...' : 'Download'}
+                              {actionLoading === 'download-pdf' ? (t.invoice.downloading || 'Downloading...') : t.common.download}
                             </Button>
                           </>
                         )}
@@ -1079,7 +1081,7 @@ const InvoiceDetail: React.FC = () => {
                         </div>
                         <div>
                           <p className="text-sm font-medium text-gray-900">Invoice {invoice?.number}.pdf</p>
-                          <p className="text-xs text-gray-500">PDF will be generated on-demand</p>
+                          <p className="text-xs text-gray-500">{t.invoice.pdfGeneratedOnDemand || 'PDF will be generated on-demand'}</p>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -1122,11 +1124,11 @@ const InvoiceDetail: React.FC = () => {
                         <div className="flex items-center gap-2 mt-1">
                           {file.fileType === 'reminder_pdf' && (
                             <span className="px-2 py-0.5 bg-orange-100 text-orange-800 rounded text-xs font-medium">
-                              Reminder {file.reminderLevel}
+                              {t.invoice.reminder} {file.reminderLevel}
                             </span>
                           )}
                           <p className="text-xs text-gray-500">
-                            {file.uploadedAt ? new Date(file.uploadedAt).toLocaleDateString() : 'N/A'}
+                            {file.uploadedAt ? new Date(file.uploadedAt).toLocaleDateString() : (t.invoice.na || 'N/A')}
                           </p>
                         </div>
                       </div>
@@ -1153,13 +1155,13 @@ const InvoiceDetail: React.FC = () => {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Internal Notes</CardTitle>
+                <CardTitle>{t.invoice.internalNotes || 'Internal Notes'}</CardTitle>
                 {!isEditingNotes && (
                   <Button variant="outline" size="sm" onClick={handleAddComment}>
                   <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
-                    {notes ? 'Edit' : 'Add'}
+                    {notes ? t.common.edit : (t.common.add || 'Add')}
                 </Button>
                 )}
               </div>
@@ -1170,7 +1172,7 @@ const InvoiceDetail: React.FC = () => {
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Add internal notes about this invoice..."
+                    placeholder={t.invoice.addInternalNotesPlaceholder || 'Add internal notes about this invoice...'}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y min-h-[120px]"
                     rows={5}
                   />
@@ -1180,14 +1182,14 @@ const InvoiceDetail: React.FC = () => {
                       onClick={handleCancelEditNotes}
                       disabled={notesLoading}
                     >
-                      Cancel
+                      {t.common.cancel}
                     </Button>
                     <Button
                       variant="primary"
                       onClick={handleSaveNotes}
                       disabled={notesLoading}
                     >
-                      {notesLoading ? 'Saving...' : 'Save Notes'}
+                      {notesLoading ? (t.invoice.saving || 'Saving...') : (t.invoice.saveNotes || 'Save Notes')}
                     </Button>
                   </div>
                 </div>
@@ -1202,8 +1204,8 @@ const InvoiceDetail: React.FC = () => {
                       <svg className="w-12 h-12 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
-                      <p>No internal notes yet.</p>
-                      <p className="text-xs mt-1">Click "Add" to add notes</p>
+                      <p>{t.invoice.noInternalNotes || 'No internal notes yet.'}</p>
+                      <p className="text-xs mt-1">{t.invoice.clickAddToAddNotes || 'Click "Add" to add notes'}</p>
                     </div>
                   )}
                   </div>

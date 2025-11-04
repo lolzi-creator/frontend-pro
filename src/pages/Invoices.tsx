@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useToast } from '../contexts/ToastContext'
+import { useLanguage } from '../contexts/LanguageContext'
 import Button from '../components/Button'
 import TouchButton from '../components/TouchButton'
 import DataTable from '../components/DataTable'
@@ -15,6 +16,7 @@ import { apiClient } from '../lib/api'
 const Invoices: React.FC = () => {
   const navigate = useNavigate()
   const { showSuccess, showError, showWarning, showInfo } = useToast()
+  const { t } = useLanguage()
   const [filters, setFilters] = useState<Record<string, any>>({})
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
@@ -33,12 +35,12 @@ const Invoices: React.FC = () => {
   const handleInvoiceCreated = (invoiceData: any) => {
     console.log('Invoice created:', invoiceData)
     refetch()
-    showSuccess('Invoice Created!', `Invoice #${invoiceData.invoiceNumber || 'New'} has been created successfully.`)
+    showSuccess(t.invoice.invoiceCreated, `${t.invoice.invoiceNumber} #${invoiceData.invoiceNumber || 'New'} ${t.common.success.toLowerCase()}.`)
   }
 
   const handleDeleteInvoice = async (invoice: any) => {
     if (!invoice?.id) {
-      showError('Delete Failed', 'Invalid invoice data')
+      showError(t.common.error, 'Invalid invoice data')
       return
     }
 
@@ -46,13 +48,13 @@ const Invoices: React.FC = () => {
       const response = await apiClient.deleteInvoice(invoice.id)
       if (response.success) {
         refetch()
-        showSuccess('Invoice Deleted', `Invoice #${invoice.number} has been deleted successfully.`)
+        showSuccess(t.invoice.invoiceDeleted, `${t.invoice.invoiceNumber} #${invoice.number} ${t.common.success.toLowerCase()}.`)
       } else {
-        showError('Delete Failed', response.error || 'Failed to delete invoice. Please try again.')
+        showError(t.common.error, response.error || t.common.error)
       }
     } catch (error) {
       console.error('Error deleting invoice:', error)
-      showError('Delete Failed', 'Failed to delete invoice. Please try again.')
+      showError(t.common.error, t.common.error)
     }
   }
 
@@ -149,19 +151,19 @@ const Invoices: React.FC = () => {
   if (error) {
     return (
       <div className="p-4 lg:p-8 h-full overflow-y-auto">
-        <Alert
-          type="error"
-          title="Failed to Load Invoices"
-          message={error}
-          onClose={() => refetch()}
-        >
-          <button
-            onClick={() => refetch()}
-            className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          <Alert
+            type="error"
+            title={t.invoice.failedToLoad}
+            message={error}
+            onClose={() => refetch()}
           >
-            Try Again
-          </button>
-        </Alert>
+            <button
+              onClick={() => refetch()}
+              className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              {t.invoice.tryAgain}
+            </button>
+          </Alert>
       </div>
     )
   }
@@ -173,10 +175,10 @@ const Invoices: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h2 className="text-xl lg:text-2xl font-bold text-gray-900 mb-1" style={{fontFamily: 'Poppins'}}>
-              Invoices
+              {t.invoice.title}
             </h2>
             <p className="text-gray-600 text-sm">
-              Manage your invoices and track payments
+              {t.invoice.subtitle}
             </p>
           </div>
           <TouchButton
@@ -189,7 +191,7 @@ const Invoices: React.FC = () => {
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
-            New Invoice
+            {t.invoice.newInvoice}
           </TouchButton>
         </div>
       </div>
@@ -199,32 +201,32 @@ const Invoices: React.FC = () => {
         filters={[
           {
             key: 'status',
-            label: 'Status',
+            label: t.invoice.status,
             type: 'select',
             options: [
-              { value: 'DRAFT', label: 'Draft' },
-              { value: 'SENT', label: 'Sent' },
-              { value: 'PAID', label: 'Paid' },
-              { value: 'OVERDUE', label: 'Overdue' },
-              { value: 'CANCELLED', label: 'Cancelled' },
+              { value: 'DRAFT', label: t.invoice.draft },
+              { value: 'SENT', label: t.invoice.sent },
+              { value: 'PAID', label: t.invoice.paidStatus },
+              { value: 'OVERDUE', label: t.invoice.overdue },
+              { value: 'CANCELLED', label: t.invoice.cancelled },
             ]
           },
           {
             key: 'amount',
-            label: 'Amount',
+              label: t.invoice.amount,
             type: 'number',
-            placeholder: 'Filter by amount'
+            placeholder: t.invoice.filterByAmount
           },
           {
             key: 'dueDate',
-            label: 'Due Date',
+              label: t.invoice.dueDate,
             type: 'dateRange'
           },
           {
             key: 'customer',
-            label: 'Customer',
+            label: t.invoice.customer,
             type: 'text',
-            placeholder: 'Search by customer name'
+            placeholder: t.invoice.searchByCustomer
           }
         ]}
         onApplyFilters={setFilters}
@@ -238,7 +240,7 @@ const Invoices: React.FC = () => {
           columns={[
             {
               key: 'number',
-              label: 'Invoice #',
+              label: `${t.invoice.invoiceNumber} #`,
               sortable: true,
               priority: 'high',
               render: (value) => (
@@ -256,7 +258,7 @@ const Invoices: React.FC = () => {
             },
             {
               key: 'customer',
-              label: 'Customer',
+              label: t.invoice.customer,
               sortable: true,
               priority: 'high',
               render: (value, row) => (
@@ -265,7 +267,7 @@ const Invoices: React.FC = () => {
             },
             {
               key: 'total',
-              label: 'Amount',
+              label: t.invoice.amount,
               sortable: true,
               priority: 'high',
               render: (value, row) => (
@@ -274,7 +276,7 @@ const Invoices: React.FC = () => {
             },
             {
               key: 'status',
-              label: 'Status',
+              label: t.invoice.status,
               sortable: true,
               priority: 'medium',
               render: (value) => (
@@ -286,7 +288,7 @@ const Invoices: React.FC = () => {
             },
             {
               key: 'dueDate',
-              label: 'Due Date',
+              label: t.invoice.dueDate,
               sortable: true,
               priority: 'medium',
               render: (value) => (
@@ -295,7 +297,7 @@ const Invoices: React.FC = () => {
             },
             {
               key: 'actions' as any,
-              label: 'Actions',
+              label: t.invoice.actions,
               render: (_, row) => (
                 <div className="flex items-center space-x-2">
                   <TouchButton
@@ -306,18 +308,17 @@ const Invoices: React.FC = () => {
                       navigate(`/invoices/${row.id}`)
                     }}
                   >
-                    View
+                    {t.invoice.view}
                   </TouchButton>
                   <TouchButton
                     variant="primary"
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation()
-                      // Handle edit - you could open a modal or navigate to edit page
-                      showInfo('Edit Invoice', 'Edit functionality will be implemented soon.')
+                      navigate(`/invoices/${row.id}/edit`)
                     }}
                   >
-                    Edit
+                    {t.invoice.edit}
                   </TouchButton>
                   <TouchButton
                     variant="outline"
@@ -328,7 +329,7 @@ const Invoices: React.FC = () => {
                     }}
                     className="text-red-600 hover:text-red-700 hover:bg-red-50"
                   >
-                    Delete
+                    {t.common.delete}
                   </TouchButton>
                 </div>
               )
@@ -354,7 +355,7 @@ const Invoices: React.FC = () => {
           columns={[
             {
               key: 'number',
-              label: 'Invoice #',
+              label: `${t.invoice.invoiceNumber} #`,
               sortable: true,
               render: (value) => (
                 <span className="font-medium text-gray-900">{value}</span>
@@ -362,7 +363,7 @@ const Invoices: React.FC = () => {
             },
             {
               key: 'customer',
-              label: 'Customer',
+              label: t.invoice.customer,
               sortable: true,
               render: (value, row) => (
                 <span className="text-gray-900">{row.customer?.name || 'N/A'}</span>
@@ -370,7 +371,7 @@ const Invoices: React.FC = () => {
             },
             {
               key: 'total',
-              label: 'Amount',
+              label: t.invoice.amount,
               sortable: true,
               render: (value, row) => (
                 <span className="font-medium text-gray-900">{row.currency} {value?.toFixed(2) || '0.00'}</span>
@@ -378,7 +379,7 @@ const Invoices: React.FC = () => {
             },
             {
               key: 'status',
-              label: 'Status',
+              label: t.invoice.status,
               sortable: true,
               render: (value) => (
                 <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(value)}`}>
@@ -389,7 +390,7 @@ const Invoices: React.FC = () => {
             },
             {
               key: 'dueDate',
-              label: 'Due Date',
+              label: t.invoice.dueDate,
               sortable: true,
               render: (value) => (
                 <span className="text-gray-600">{value ? new Date(value).toLocaleDateString() : 'N/A'}</span>
@@ -408,17 +409,17 @@ const Invoices: React.FC = () => {
                       navigate(`/invoices/${row.id}`)
                     }}
                   >
-                    View
+                    {t.invoice.view}
                   </Button>
                   <Button
                     variant="primary"
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation()
-                      showInfo('Edit Invoice', 'Edit functionality will be implemented soon.')
+                      navigate(`/invoices/${row.id}/edit`)
                     }}
                   >
-                    Edit
+                    {t.invoice.edit}
                   </Button>
                   <Button
                     variant="outline"
@@ -429,7 +430,7 @@ const Invoices: React.FC = () => {
                     }}
                     className="text-red-600 hover:text-red-700 hover:bg-red-50"
                   >
-                    Delete
+                    {t.common.delete}
                   </Button>
                 </div>
               )
@@ -462,10 +463,10 @@ const Invoices: React.FC = () => {
           handleDeleteInvoice(deleteModal.invoice)
           setDeleteModal({ isOpen: false, invoice: null })
         }}
-        title="Delete Invoice"
-        message={`Are you sure you want to delete invoice #${deleteModal.invoice?.number}? This action cannot be undone.`}
-        confirmText="Delete"
-        cancelText="Cancel"
+        title={t.invoice.delete}
+        message={t.invoice.deleteConfirmation.replace('{{number}}', deleteModal.invoice?.number || '')}
+        confirmText={t.common.delete}
+        cancelText={t.common.cancel}
         type="danger"
       />
     </div>

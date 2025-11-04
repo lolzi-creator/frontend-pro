@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { apiClient } from '../lib/api'
+import { useLanguage } from '../contexts/LanguageContext'
 
 interface Quote {
   id: string
@@ -39,6 +40,7 @@ interface Quote {
 const AcceptQuote: React.FC = () => {
   const { token } = useParams()
   const navigate = useNavigate()
+  const { t } = useLanguage()
   
   const [quote, setQuote] = useState<Quote | null>(null)
   const [loading, setLoading] = useState(true)
@@ -53,7 +55,7 @@ const AcceptQuote: React.FC = () => {
 
   const loadQuote = async () => {
     if (!token) {
-      setError('Invalid token')
+      setError(t.quote.invalidToken || 'Invalid token')
       setLoading(false)
       return
     }
@@ -68,7 +70,7 @@ const AcceptQuote: React.FC = () => {
           setAccepted(true)
         }
       } else {
-        setError(response.error || 'Quote not found')
+        setError(response.error || t.quote.quoteNotFound || 'Quote not found')
       }
     } catch (error: any) {
       console.error('Error loading quote:', error)
@@ -77,7 +79,7 @@ const AcceptQuote: React.FC = () => {
       } else if (error.response?.data?.message) {
         setError(error.response.data.message)
       } else {
-        setError('Failed to load quote')
+        setError(t.quote.failedToLoad || 'Failed to load quote')
       }
     } finally {
       setLoading(false)
@@ -95,7 +97,7 @@ const AcceptQuote: React.FC = () => {
       if (response.success) {
         setAccepted(true)
       } else {
-        setError(response.error || 'Failed to accept quote')
+        setError(response.error || t.quote.failedToAccept || 'Failed to accept quote')
       }
     } catch (error: any) {
       console.error('Error accepting quote:', error)
@@ -104,7 +106,7 @@ const AcceptQuote: React.FC = () => {
       } else if (error.response?.data?.message) {
         setError(error.response.data.message)
       } else {
-        setError('Failed to accept quote')
+        setError(t.quote.failedToAccept || 'Failed to accept quote')
       }
     } finally {
       setAccepting(false)
@@ -116,7 +118,7 @@ const AcceptQuote: React.FC = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading quote...</p>
+          <p className="mt-4 text-gray-600">{t.quote.loadingQuote || 'Loading quote...'}</p>
         </div>
       </div>
     )
@@ -132,8 +134,8 @@ const AcceptQuote: React.FC = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Quote Not Found</h2>
-            <p className="text-gray-600 mb-6">{error || 'Unable to load this quote. The link may be invalid or expired.'}</p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">{t.quote.quoteNotFound || 'Quote Not Found'}</h2>
+            <p className="text-gray-600 mb-6">{error || t.quote.unableToLoadQuote || 'Unable to load this quote. The link may be invalid or expired.'}</p>
           </div>
         </div>
       </div>
@@ -149,16 +151,16 @@ const AcceptQuote: React.FC = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">Quote Accepted!</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">{t.quote.quoteAccepted || 'Quote Accepted!'}</h1>
           <p className="text-lg text-gray-600 mb-8">
-            Thank you! Your quote has been accepted and has been automatically converted to an invoice.
+            {t.quote.thankYouAccepted || 'Thank you! Your quote has been accepted and has been automatically converted to an invoice.'}
           </p>
           <div className="bg-gray-50 rounded-lg p-6 mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Quote #{quote.number}</h2>
-            <p className="text-gray-600">Total: CHF {quote.total.toFixed(2)}</p>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">{t.quote.number} #{quote.number}</h2>
+            <p className="text-gray-600">{t.invoice.total}: CHF {quote.total.toFixed(2)}</p>
           </div>
           <p className="text-sm text-gray-500">
-            You will receive the invoice via email shortly. If you have any questions, please contact us.
+            {t.quote.invoiceEmailSent || 'You will receive the invoice via email shortly. If you have any questions, please contact us.'}
           </p>
         </div>
       </div>
@@ -176,8 +178,8 @@ const AcceptQuote: React.FC = () => {
           <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-8 py-6">
             <div className="flex justify-between items-center">
               <div>
-                <h1 className="text-3xl font-bold text-white">Quote #{quote.number}</h1>
-                <p className="text-orange-100 mt-1">Valid until {new Date(quote.expiryDate).toLocaleDateString()}</p>
+                <h1 className="text-3xl font-bold text-white">{t.quote.number} #{quote.number}</h1>
+                <p className="text-orange-100 mt-1">{t.quote.validUntil || 'Valid until'} {new Date(quote.expiryDate).toLocaleDateString()}</p>
               </div>
               {quote.company && (
                 <div className="text-right text-white">
@@ -198,7 +200,7 @@ const AcceptQuote: React.FC = () => {
                   </svg>
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm text-yellow-700">This quote has expired.</p>
+                  <p className="text-sm text-yellow-700">{t.quote.quoteExpired || 'This quote has expired.'}</p>
                 </div>
               </div>
             </div>
@@ -209,7 +211,7 @@ const AcceptQuote: React.FC = () => {
             {/* Customer and Company Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
               <div>
-                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">From</h3>
+                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">{t.invoice.from || 'From'}</h3>
                 {quote.company && (
                   <div className="text-gray-700">
                     <p className="font-medium text-gray-900">{quote.company.name}</p>
@@ -220,7 +222,7 @@ const AcceptQuote: React.FC = () => {
                 )}
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">To</h3>
+                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">{t.invoice.billTo || 'To'}</h3>
                 {quote.customer && (
                   <div className="text-gray-700">
                     <p className="font-medium text-gray-900">{quote.customer.name}</p>
@@ -234,15 +236,15 @@ const AcceptQuote: React.FC = () => {
 
             {/* Quote Items */}
             <div className="mb-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Services & Items</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">{t.quote.servicesItems || 'Services & Items'}</h3>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-gray-200">
-                      <th className="text-left py-3 px-4 font-medium text-gray-700">Description</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-700">Qty</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-700">Price</th>
-                      <th className="text-right py-3 px-4 font-medium text-gray-700">Total</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-700">{t.invoice.description}</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-700">{t.invoice.quantity}</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-700">{t.invoice.unitPrice || 'Price'}</th>
+                      <th className="text-right py-3 px-4 font-medium text-gray-700">{t.invoice.total}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -257,15 +259,15 @@ const AcceptQuote: React.FC = () => {
                   </tbody>
                   <tfoot>
                     <tr className="border-t border-gray-200">
-                      <td colSpan={3} className="py-4 px-4 text-right font-medium text-gray-900">Subtotal</td>
+                      <td colSpan={3} className="py-4 px-4 text-right font-medium text-gray-900">{t.invoice.subtotal}</td>
                       <td className="py-4 px-4 text-right font-medium">CHF {quote.subtotal.toFixed(2)}</td>
                     </tr>
                     <tr>
-                      <td colSpan={3} className="py-4 px-4 text-right font-medium text-gray-900">VAT</td>
+                      <td colSpan={3} className="py-4 px-4 text-right font-medium text-gray-900">{t.invoice.vat}</td>
                       <td className="py-4 px-4 text-right font-medium">CHF {quote.vatAmount.toFixed(2)}</td>
                     </tr>
                     <tr className="border-t-2 border-gray-300">
-                      <td colSpan={3} className="py-4 px-4 text-right font-bold text-lg text-gray-900">Total</td>
+                      <td colSpan={3} className="py-4 px-4 text-right font-bold text-lg text-gray-900">{t.invoice.total}</td>
                       <td className="py-4 px-4 text-right font-bold text-lg">CHF {quote.total.toFixed(2)}</td>
                     </tr>
                   </tfoot>
@@ -277,7 +279,7 @@ const AcceptQuote: React.FC = () => {
             {!customerEmail && (
               <div className="mb-8">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Your Email Address (optional)
+                  {t.quote.yourEmailAddress || 'Your Email Address'} ({t.common.optional || 'optional'})
                 </label>
                 <input
                   type="email"
@@ -287,7 +289,7 @@ const AcceptQuote: React.FC = () => {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
                 <p className="mt-1 text-sm text-gray-500">
-                  We'll send your invoice to this email address
+                  {t.quote.invoiceEmailSentInfo || 'We\'ll send your invoice to this email address'}
                 </p>
               </div>
             )}
@@ -309,10 +311,10 @@ const AcceptQuote: React.FC = () => {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Processing...
+                    {t.quote.processing || 'Processing...'}
                   </span>
                 ) : (
-                  'Accept Quote'
+                  t.quote.acceptQuote || 'Accept Quote'
                 )}
               </button>
             </div>
