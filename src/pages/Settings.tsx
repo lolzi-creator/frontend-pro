@@ -17,16 +17,57 @@ const Settings: React.FC = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john.doe@example.com',
-    company: 'Acme Corp',
-    phone: '+41 44 123 45 67',
-    address: 'Bahnhofstrasse 1',
-    city: 'Zurich',
-    zipCode: '8001',
+    firstName: '',
+    lastName: '',
+    email: '',
+    company: '',
+    phone: '',
+    address: '',
+    city: '',
+    zipCode: '',
     country: 'Switzerland'
   })
+
+  // Load user and company data from localStorage on mount
+  useEffect(() => {
+    const userData = localStorage.getItem('user')
+    const companyData = localStorage.getItem('company')
+    
+    if (userData) {
+      try {
+        const user = JSON.parse(userData)
+        const nameParts = (user.name || '').split(' ')
+        const firstName = nameParts[0] || ''
+        const lastName = nameParts.slice(1).join(' ') || ''
+        
+        setFormData(prev => ({
+          ...prev,
+          firstName,
+          lastName,
+          email: user.email || ''
+        }))
+      } catch (e) {
+        console.error('Failed to parse user data:', e)
+      }
+    }
+
+    if (companyData) {
+      try {
+        const company = JSON.parse(companyData)
+        setFormData(prev => ({
+          ...prev,
+          company: company.name || '',
+          phone: company.phone || '',
+          address: company.address || '',
+          city: company.city || '',
+          zipCode: company.zip || '',
+          country: company.country || 'Switzerland'
+        }))
+      } catch (e) {
+        console.error('Failed to parse company data:', e)
+      }
+    }
+  }, [])
 
   // User management state
   const [users, setUsers] = useState<any[]>([])

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useToast } from '../contexts/ToastContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import { apiClient } from '../lib/api'
+import { exportQuotes } from '../utils/export'
 import Button from '../components/Button'
 import TouchButton from '../components/TouchButton'
 import DataTable from '../components/DataTable'
@@ -10,6 +11,7 @@ import CompactMobileTable from '../components/CompactMobileTable'
 import AdvancedFilters from '../components/AdvancedFilters'
 import ConfirmationModal from '../components/ConfirmationModal'
 import QuoteModal from '../components/QuoteModal'
+import ExportModal from '../components/ExportModal'
 import { TableSkeleton, Alert, LoadingSpinner } from '../components'
 
 // Define Quote interface inline
@@ -50,6 +52,7 @@ const Quotes: React.FC = () => {
     quote: null
   })
   const [quoteModal, setQuoteModal] = useState(false)
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false)
 
   React.useEffect(() => {
     const fetchQuotes = async () => {
@@ -87,6 +90,20 @@ const Quotes: React.FC = () => {
     } catch (error) {
       console.error('Error deleting quote:', error)
       showError(t.common.error, t.common.error)
+    }
+  }
+
+  const handleExport = async (exportFilters: any, format: 'csv' | 'pdf') => {
+    try {
+      const result = await exportQuotes(exportFilters, format)
+      
+      if (result.success) {
+        showSuccess(t.common.success, `Quotes exported as ${format.toUpperCase()}`)
+      } else {
+        showError(t.common.error, result.error || 'Failed to export quotes')
+      }
+    } catch (error) {
+      showError(t.common.error, 'Failed to export quotes')
     }
   }
 
@@ -227,18 +244,31 @@ const Quotes: React.FC = () => {
               {t.quote.subtitle}
             </p>
           </div>
-          <TouchButton
-            variant="primary"
-            size="md"
-            fullWidth
-            className="sm:w-auto"
-            onClick={handleCreateQuote}
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            {t.quote.newQuote}
-          </TouchButton>
+          <div className="flex gap-2">
+            <TouchButton
+              variant="secondary"
+              size="md"
+              className="sm:w-auto"
+              onClick={() => setIsExportModalOpen(true)}
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Export
+            </TouchButton>
+            <TouchButton
+              variant="primary"
+              size="md"
+              fullWidth
+              className="sm:w-auto"
+              onClick={handleCreateQuote}
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              {t.quote.newQuote}
+            </TouchButton>
+          </div>
         </div>
       </div>
 
@@ -538,6 +568,31 @@ const Quotes: React.FC = () => {
         isOpen={quoteModal}
         onClose={() => setQuoteModal(false)}
         onSave={handleQuoteCreated}
+      />
+
+      <ExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onExport={handleExport}
+        title="Export Quotes"
+        filterOptions={[
+          {
+            type: 'select',
+            key: 'status',
+            label: 'Status',
+            options: [
+              { value: 'PENDING', label: 'Pending' },
+              { value: 'ACCEPTED', label: 'Accepted' },
+              { value: 'REJECTED', label: 'Rejected' },
+              { value: 'CONVERTED', label: 'Converted' }
+            ]
+          },
+          {
+            type: 'dateRange',
+            key: 'date',
+            label: 'Date Range'
+          }
+        ]}
       />
     </div>
   )

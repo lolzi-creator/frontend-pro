@@ -5,6 +5,7 @@ import { LanguageProvider } from './contexts/LanguageContext'
 import Layout from './components/layout/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
+import Register from './pages/Register'
 import Dashboard from './pages/SimpleDashboard'
 import Invoices from './pages/Invoices'
 import CreateInvoice from './pages/CreateInvoice'
@@ -35,6 +36,7 @@ function App() {
       <Routes>
         {/* Public routes */}
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/quotes/accept/:token" element={<AcceptQuote />} />
         <Route path="/invitations/accept/:token" element={<AcceptInvitation />} />
         

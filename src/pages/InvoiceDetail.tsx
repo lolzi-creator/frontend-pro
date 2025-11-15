@@ -591,7 +591,18 @@ const InvoiceDetail: React.FC = () => {
                   <div className="text-sm text-gray-600">
                     <p className="font-medium text-gray-900">{invoice.company?.name || (t.invoice.companyName || 'Company Name')}</p>
                     <p className="whitespace-pre-line">{invoice.company?.address || (t.invoice.companyAddress || 'Company Address')}</p>
-                    <p>{t.invoice.vat}: {invoice.company?.vatNumber || (t.invoice.na || 'N/A')}</p>
+                    <p>
+                      {t.invoice.vat}: {
+                        (() => {
+                          const raw = invoice.company?.vatNumber
+                          if (!raw) return (t.invoice.na || 'N/A')
+                          const digits = (raw.match(/\d/g) || []).join('')
+                          if (digits.length < 9) return raw
+                          const d = digits.slice(0, 9)
+                          return `CHE-${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)} MWST`
+                        })()
+                      }
+                    </p>
                     <p>{t.invoice.phone || 'Phone'}: {invoice.company?.phone || (t.invoice.na || 'N/A')}</p>
                     <p>{t.invoice.email || 'Email'}: {invoice.company?.email || (t.invoice.na || 'N/A')}</p>
                   </div>
@@ -603,7 +614,18 @@ const InvoiceDetail: React.FC = () => {
                   <div className="text-sm text-gray-600">
                     <p className="font-medium text-gray-900">{invoice.customer?.name || (t.invoice.customerName || 'Customer Name')}</p>
                     <p className="whitespace-pre-line">{invoice.customer?.address || (t.invoice.customerAddress || 'Customer Address')}</p>
-                    <p>{t.invoice.vat}: {invoice.customer?.vatNumber || (t.invoice.na || 'N/A')}</p>
+                    <p>
+                      {t.invoice.vat}: {
+                        (() => {
+                          const raw = invoice.customer?.vatNumber
+                          if (!raw) return (t.invoice.na || 'N/A')
+                          const digits = (raw.match(/\d/g) || []).join('')
+                          if (digits.length < 9) return raw
+                          const d = digits.slice(0, 9)
+                          return `CHE-${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)} MWST`
+                        })()
+                      }
+                    </p>
                     <p>{t.invoice.phone || 'Phone'}: {invoice.customer?.phone || (t.invoice.na || 'N/A')}</p>
                     <p>{t.invoice.email || 'Email'}: {invoice.customer?.email || (t.invoice.na || 'N/A')}</p>
                   </div>

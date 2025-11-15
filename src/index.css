@@ -67,6 +67,21 @@
     -moz-appearance: textfield;
   }
   
+  /* DISABLE THE ANNOYING SCROLL-TO-CHANGE BEHAVIOR ON NUMBER INPUTS */
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+  
+  input[type="number"]:focus {
+    -moz-appearance: textfield;
+  }
+  
+  /* Prevent scroll wheel from changing number input values */
+  input[type="number"]::-webkit-inner-spin-button:hover,
+  input[type="number"]::-webkit-outer-spin-button:hover {
+    -webkit-appearance: none;
+  }
+  
   /* Smooth scrolling */
   html {
     scroll-behavior: smooth;
@@ -78,3 +93,4 @@
     outline-offset: 2px;
   }
 }
+

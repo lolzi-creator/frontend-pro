@@ -12,7 +12,9 @@ import PaymentImportModal from '../components/PaymentImportModal'
 import PaymentModal from '../components/PaymentModal'
 import { TableSkeleton, Alert, LoadingSpinner } from '../components'
 import MatchPaymentModal from '../components/MatchPaymentModal'
+import ExportModal from '../components/ExportModal'
 import { apiClient } from '../lib/api'
+import { exportPayments } from '../utils/export'
 
 // Define Payment interface inline - matches backend API response
 interface Payment {
@@ -54,6 +56,7 @@ const Payments: React.FC = () => {
   const [importModal, setImportModal] = useState(false)
   const [paymentModal, setPaymentModal] = useState(false)
   const [matchModal, setMatchModal] = useState<{ isOpen: boolean; payment: Payment | null }>({ isOpen: false, payment: null })
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false)
 
   React.useEffect(() => {
     const fetchPayments = async () => {
@@ -110,6 +113,20 @@ const Payments: React.FC = () => {
 
   const handleImportPayments = () => {
     setImportModal(true)
+  }
+
+  const handleExport = async (exportFilters: any, format: 'csv' | 'pdf') => {
+    try {
+      const result = await exportPayments(exportFilters, format)
+      
+      if (result.success) {
+        showSuccess(t.common.success, `Payments exported as ${format.toUpperCase()}`)
+      } else {
+        showError(t.common.error, result.error || 'Failed to export payments')
+      }
+    } catch (error) {
+      showError(t.common.error, 'Failed to export payments')
+    }
   }
 
   const handlePaymentCreated = (paymentData: any) => {
@@ -245,6 +262,16 @@ const Payments: React.FC = () => {
             </p>
           </div>
           <div className="flex space-x-2">
+            <TouchButton
+              variant="secondary"
+              size="md"
+              onClick={() => setIsExportModalOpen(true)}
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Export
+            </TouchButton>
             <TouchButton
               variant="outline"
               size="md"
@@ -606,6 +633,29 @@ const Payments: React.FC = () => {
         onClose={() => setMatchModal({ isOpen: false, payment: null })}
         payment={matchModal.payment}
         onMatched={handleMatched}
+      />
+
+      <ExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onExport={handleExport}
+        title="Export Payments"
+        filterOptions={[
+          {
+            type: 'select',
+            key: 'isMatched',
+            label: 'Status',
+            options: [
+              { value: 'true', label: 'Matched' },
+              { value: 'false', label: 'Unmatched' }
+            ]
+          },
+          {
+            type: 'dateRange',
+            key: 'date',
+            label: 'Date Range'
+          }
+        ]}
       />
     </div>
   )

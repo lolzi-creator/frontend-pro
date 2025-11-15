@@ -4,6 +4,7 @@ import { apiClient } from '../lib/api'
 
 const Login: React.FC = () => {
   const navigate = useNavigate()
+  const [showLogin, setShowLogin] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -54,124 +55,201 @@ const Login: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center px-4">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-5">
-        <div className="absolute inset-0" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-        }}></div>
-      </div>
-
-      <div className="relative z-10 w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-2xl">
-            <span className="text-white font-bold text-2xl" style={{fontFamily: 'Poppins'}}>IS</span>
-          </div>
-          <h1 className="text-4xl font-bold text-white mb-2" style={{fontFamily: 'Poppins'}}>
-            InvoSmart
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center px-4 py-8">
+      <div className="w-full max-w-6xl">
+        {/* Logo & Branding */}
+        <div className="text-center mb-12">
+          <h1 className="text-5xl md:text-6xl font-bold mb-4" style={{fontFamily: 'Poppins'}}>
+            <span className="text-slate-900">Invo</span>
+            <span className="text-[#ff6b35]">Smart</span>
           </h1>
-          <p className="text-slate-300 text-sm">
+          <p className="text-xl text-slate-600 max-w-2xl mx-auto">
             Smart Finance Management for Swiss Businesses
+          </p>
+          <p className="text-slate-500 mt-2">
+            Invoicing • Payments • Expenses • Reports
           </p>
         </div>
 
-        {/* Login Card */}
-        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8">
-          <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2" style={{fontFamily: 'Poppins'}}>
-              Welcome Back
-            </h2>
-            <p className="text-gray-600 text-sm">
-              Sign in to your account to continue
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={formData.email}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-colors"
-                placeholder="your@email.ch"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={formData.password}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-colors"
-                placeholder="••••••••"
-              />
-            </div>
-
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                <div className="flex">
-                  <svg className="w-5 h-5 text-red-400 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <div className="grid md:grid-cols-2 gap-8 items-center">
+          {/* Features Section */}
+          <div className="space-y-6">
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+              <div className="flex items-start">
+                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mr-4 flex-shrink-0">
+                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <p className="text-sm text-red-800">{error}</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-900 text-lg mb-1">Swiss QR Invoices</h3>
+                  <p className="text-sm text-slate-600">Compliant with Swiss payment standards (SIX)</p>
                 </div>
               </div>
-            )}
+            </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-orange-500 to-pink-500 text-white font-semibold py-3 px-4 rounded-lg hover:from-orange-600 hover:to-pink-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02]"
-            >
-              {loading ? (
-                <div className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+              <div className="flex items-start">
+                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4 flex-shrink-0">
+                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  Signing in...
                 </div>
-              ) : (
-                'Sign In'
-              )}
-            </button>
-          </form>
+                <div>
+                  <h3 className="font-semibold text-slate-900 text-lg mb-1">Automatic Matching</h3>
+                  <p className="text-sm text-slate-600">Import bank statements, auto-match payments</p>
+                </div>
+              </div>
+            </div>
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
-              <button
-                type="button"
-                className="text-orange-600 font-semibold hover:text-orange-700 transition-colors"
-                onClick={() => {
-                  // For now, just show an alert. In a real app, you'd navigate to a register page
-                  alert('Registration functionality coming soon!')
-                }}
-              >
-                Get Started
-              </button>
-            </p>
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+              <div className="flex items-start">
+                <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mr-4 flex-shrink-0">
+                  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-900 text-lg mb-1">Financial Overview</h3>
+                  <p className="text-sm text-slate-600">Track income, expenses, and cash flow</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Login Card */}
+          <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+            {!showLogin ? (
+              /* Welcome View */
+              <div className="p-8">
+                <h2 className="text-2xl font-bold text-slate-900 text-center mb-6" style={{fontFamily: 'Poppins'}}>
+                  Welcome to InvoSmart
+                </h2>
+
+                <button
+                  onClick={() => navigate('/register')}
+                  className="w-full bg-[#ff6b35] text-white font-semibold py-4 rounded-xl hover:bg-[#ff5722] transition-all transform hover:scale-[1.02] shadow-lg mb-4"
+                >
+                  Get Started - Free Trial
+                </button>
+
+                <button
+                  onClick={() => setShowLogin(true)}
+                  className="w-full bg-slate-100 text-slate-900 font-semibold py-4 rounded-xl hover:bg-slate-200 transition-all"
+                >
+                  Sign In
+                </button>
+
+                <div className="mt-8 pt-6 border-t border-slate-200">
+                  <div className="text-center space-y-2">
+                    <div className="text-[#ff6b35] text-2xl font-bold">100%</div>
+                    <div className="text-slate-600 text-sm">Swiss Compliant</div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* Login Form */
+              <div className="p-8">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold text-slate-900" style={{fontFamily: 'Poppins'}}>Sign In</h2>
+                  <button
+                    onClick={() => {
+                      setShowLogin(false)
+                      setError('')
+                    }}
+                    className="text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
+                      Email Address
+                    </label>
+                    <input
+                      id="email"
+                      name="email"
+                      type="email"
+                      autoComplete="email"
+                      required
+                      value={formData.email}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#ff6b35] focus:border-transparent outline-none transition-colors"
+                      placeholder="your@email.ch"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-2">
+                      Password
+                    </label>
+                    <input
+                      id="password"
+                      name="password"
+                      type="password"
+                      autoComplete="current-password"
+                      required
+                      value={formData.password}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#ff6b35] focus:border-transparent outline-none transition-colors"
+                      placeholder="••••••••"
+                    />
+                  </div>
+
+                  {error && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                      <div className="flex">
+                        <svg className="w-5 h-5 text-red-400 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p className="text-sm text-red-800">{error}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-[#ff6b35] text-white font-semibold py-3 px-4 rounded-lg hover:bg-[#ff5722] focus:outline-none focus:ring-2 focus:ring-[#ff6b35] focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02]"
+                  >
+                    {loading ? (
+                      <div className="flex items-center justify-center">
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Signing in...
+                      </div>
+                    ) : (
+                      'Sign In'
+                    )}
+                  </button>
+
+                  <div className="text-center pt-4 border-t border-slate-200">
+                    <p className="text-sm text-slate-600">
+                      Don't have an account?{' '}
+                      <button
+                        type="button"
+                        className="text-[#ff6b35] font-semibold hover:text-[#ff5722] transition-colors"
+                        onClick={() => navigate('/register')}
+                      >
+                        Get Started
+                      </button>
+                    </p>
+                  </div>
+                </form>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Footer */}
-        <div className="mt-8 text-center">
-          <p className="text-slate-400 text-xs">
+        <div className="mt-12 text-center">
+          <p className="text-slate-500 text-sm">
             © 2024 InvoSmart. All rights reserved.
           </p>
         </div>
@@ -181,7 +259,3 @@ const Login: React.FC = () => {
 }
 
 export default Login
-
-
-
-

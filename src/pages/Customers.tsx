@@ -9,7 +9,9 @@ import DataTable from '../components/DataTable'
 import CompactMobileTable from '../components/CompactMobileTable'
 import AdvancedFilters from '../components/AdvancedFilters'
 import ConfirmationModal from '../components/ConfirmationModal'
+import ExportModal from '../components/ExportModal'
 import { TableSkeleton, Alert, LoadingSpinner } from '../components'
+import { exportCustomers } from '../utils/export'
 
 const Customers: React.FC = () => {
   const navigate = useNavigate()
@@ -18,6 +20,7 @@ const Customers: React.FC = () => {
   const [filters, setFilters] = useState<Record<string, any>>({})
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false)
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; customer: any }>({
     isOpen: false,
     customer: null
@@ -47,6 +50,20 @@ const Customers: React.FC = () => {
 
   const handleCreateCustomer = () => {
     navigate('/customers/create')
+  }
+
+  const handleExport = async (exportFilters: any, format: 'csv' | 'pdf') => {
+    try {
+      const result = await exportCustomers(exportFilters, format)
+      
+      if (result.success) {
+        showSuccess(t.common.success, `Customers exported as ${format.toUpperCase()}`)
+      } else {
+        showError(t.common.error, result.error || 'Failed to export customers')
+      }
+    } catch (error) {
+      showError(t.common.error, 'Failed to export customers')
+    }
   }
 
 
@@ -107,18 +124,31 @@ const Customers: React.FC = () => {
               {t.customer.subtitle}
             </p>
           </div>
-          <TouchButton
-            variant="primary"
-            size="md"
-            fullWidth
-            className="sm:w-auto"
-            onClick={handleCreateCustomer}
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            {t.customer.newCustomer}
-          </TouchButton>
+          <div className="flex gap-2">
+            <TouchButton
+              variant="secondary"
+              size="md"
+              className="sm:w-auto"
+              onClick={() => setIsExportModalOpen(true)}
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Export
+            </TouchButton>
+            <TouchButton
+              variant="primary"
+              size="md"
+              fullWidth
+              className="sm:w-auto"
+              onClick={handleCreateCustomer}
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              {t.customer.newCustomer}
+            </TouchButton>
+          </div>
         </div>
       </div>
 
@@ -412,6 +442,24 @@ const Customers: React.FC = () => {
         confirmText={t.common.delete}
         cancelText={t.common.cancel}
         type="danger"
+      />
+
+      <ExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onExport={handleExport}
+        title="Export Customers"
+        filterOptions={[
+          {
+            type: 'select',
+            key: 'isActive',
+            label: 'Status',
+            options: [
+              { value: 'true', label: 'Active' },
+              { value: 'false', label: 'Inactive' }
+            ]
+          }
+        ]}
       />
 
     </div>

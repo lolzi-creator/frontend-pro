@@ -9,9 +9,11 @@ import CompactMobileTable from '../components/CompactMobileTable'
 import AdvancedFilters from '../components/AdvancedFilters'
 import InvoiceModal from '../components/InvoiceModal'
 import ConfirmationModal from '../components/ConfirmationModal'
+import ExportModal from '../components/ExportModal'
 import { TableSkeleton, Alert, LoadingSpinner } from '../components'
 import { useInvoices } from '../hooks/useInvoices'
 import { apiClient } from '../lib/api'
+import { exportInvoices } from '../utils/export'
 
 const Invoices: React.FC = () => {
   const navigate = useNavigate()
@@ -25,6 +27,7 @@ const Invoices: React.FC = () => {
     isOpen: false,
     invoice: null
   })
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false)
 
   const { invoices, loading, error, totalCount, refetch } = useInvoices({
     page: currentPage,
@@ -71,6 +74,20 @@ const Invoices: React.FC = () => {
       showSuccess('Status Updated', `Invoice #${invoice.number} status updated to ${newStatus}.`)
     } catch (error) {
       showError('Update Failed', 'Failed to update invoice status. Please try again.')
+    }
+  }
+
+  const handleExport = async (exportFilters: any, format: 'csv' | 'pdf') => {
+    try {
+      const result = await exportInvoices(exportFilters, format)
+      
+      if (result.success) {
+        showSuccess(t.common.success, `Invoices exported as ${format.toUpperCase()}`)
+      } else {
+        showError(t.common.error, result.error || 'Failed to export invoices')
+      }
+    } catch (error) {
+      showError(t.common.error, 'Failed to export invoices')
     }
   }
 
@@ -181,18 +198,31 @@ const Invoices: React.FC = () => {
               {t.invoice.subtitle}
             </p>
           </div>
-          <TouchButton
-            variant="primary"
-            size="md"
-            fullWidth
-            className="sm:w-auto"
-            onClick={() => navigate('/invoices/create')}
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            {t.invoice.newInvoice}
-          </TouchButton>
+          <div className="flex gap-2">
+            <TouchButton
+              variant="secondary"
+              size="md"
+              className="sm:w-auto"
+              onClick={() => setIsExportModalOpen(true)}
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Export
+            </TouchButton>
+            <TouchButton
+              variant="primary"
+              size="md"
+              fullWidth
+              className="sm:w-auto"
+              onClick={() => navigate('/invoices/create')}
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              {t.invoice.newInvoice}
+            </TouchButton>
+          </div>
         </div>
       </div>
 
@@ -468,6 +498,32 @@ const Invoices: React.FC = () => {
         confirmText={t.common.delete}
         cancelText={t.common.cancel}
         type="danger"
+      />
+
+      <ExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onExport={handleExport}
+        title="Export Invoices"
+        filterOptions={[
+          {
+            type: 'select',
+            key: 'status',
+            label: 'Status',
+            options: [
+              { value: 'DRAFT', label: 'Draft' },
+              { value: 'OPEN', label: 'Open' },
+              { value: 'PAID', label: 'Paid' },
+              { value: 'OVERDUE', label: 'Overdue' },
+              { value: 'CANCELLED', label: 'Cancelled' }
+            ]
+          },
+          {
+            type: 'dateRange',
+            key: 'date',
+            label: 'Date Range'
+          }
+        ]}
       />
     </div>
   )

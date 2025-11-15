@@ -27,6 +27,7 @@ interface NewInvoice {
   customerId: string
   date: string
   dueDate: string
+  serviceDate: string // Leistungsdatum (zwingend für MWST-Abrechnung)
   discountCode: string
   discountAmount: number
   items: InvoiceItem[]
@@ -36,6 +37,26 @@ const CreateInvoice: React.FC = () => {
   const navigate = useNavigate()
   const { showToast } = useToast()
   const { t } = useLanguage()
+  
+  // Prevent number input value change on scroll - this annoying default behavior needs to die
+  const preventScrollChange = (e: React.WheelEvent<HTMLInputElement>) => {
+    e.preventDefault()
+  }
+  
+  // Global fix: Disable scroll on ALL number inputs when focused
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      if (document.activeElement?.tagName === 'INPUT' && 
+          (document.activeElement as HTMLInputElement).type === 'number') {
+        e.preventDefault()
+      }
+    }
+    
+    document.addEventListener('wheel', handleWheel, { passive: false })
+    return () => {
+      document.removeEventListener('wheel', handleWheel)
+    }
+  }, [])
   
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(false)
@@ -51,6 +72,7 @@ const CreateInvoice: React.FC = () => {
     customerId: '',
     date: new Date().toISOString().split('T')[0],
     dueDate: '',
+    serviceDate: new Date().toISOString().split('T')[0], // Default to today
     discountCode: '',
     discountAmount: 0,
     items: [{
@@ -219,6 +241,11 @@ const CreateInvoice: React.FC = () => {
       return
     }
 
+    if (!newInvoice.serviceDate) {
+      showToast({ type: 'error', title: 'Leistungsdatum ist zwingend erforderlich für die MWST-Abrechnung' })
+      return
+    }
+
     if (newInvoice.items.some(item => !item.description.trim())) {
       showToast({ type: 'error', title: t.invoice.pleaseFillDescriptions || 'Please fill in all item descriptions' })
       return
@@ -236,6 +263,7 @@ const CreateInvoice: React.FC = () => {
         customerId: newInvoice.customerId,
         date: newInvoice.date,
         dueDate: newInvoice.dueDate,
+        serviceDate: newInvoice.serviceDate, // Leistungsdatum (zwingend)
         discountCode: newInvoice.discountCode || undefined,
         discountAmount: newInvoice.discountAmount || 0,
         items: newInvoice.items.map(item => ({
@@ -348,6 +376,24 @@ const CreateInvoice: React.FC = () => {
                   </div>
                 </div>
               </div>
+              
+              <div className="mt-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Leistungsdatum * <span className="text-xs text-gray-500">(zwingend für MWST-Abrechnung)</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={newInvoice.serviceDate}
+                    onChange={(e) => setNewInvoice({...newInvoice, serviceDate: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                  <div className="text-xs text-gray-500 mt-1">
+                    Datum, an dem die Leistung erbracht wurde (für MWST-Abrechnung erforderlich)
+                  </div>
+                </div>
+              </div>
             </div>
           </Card>
 
@@ -383,6 +429,7 @@ const CreateInvoice: React.FC = () => {
                         e.target.value = '';
                       }
                     }}
+                    onWheel={preventScrollChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     step="0.01"
                     min="0"
@@ -454,6 +501,7 @@ const CreateInvoice: React.FC = () => {
                               e.target.value = '';
                             }
                           }}
+                          onWheel={preventScrollChange}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-blue-500"
                           min="0.001"
                           step="0.001"
@@ -489,6 +537,7 @@ const CreateInvoice: React.FC = () => {
                               e.target.value = '';
                             }
                           }}
+                          onWheel={preventScrollChange}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-blue-500"
                           step="0.01"
                           min="0"
@@ -509,6 +558,7 @@ const CreateInvoice: React.FC = () => {
                               e.target.value = '';
                             }
                           }}
+                          onWheel={preventScrollChange}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-blue-500"
                           step="0.1"
                           min="0"

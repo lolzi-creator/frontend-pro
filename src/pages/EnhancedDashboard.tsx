@@ -24,7 +24,7 @@ const EnhancedDashboard: React.FC = () => {
     }
   }, [error, showError])
 
-  const handleExport = (format: 'pdf' | 'excel', options: any) => {
+  const handleExport = (format: 'pdf' | 'csv', options: any) => {
     console.log('Exporting dashboard:', format, options)
     showInfo('Export Started', `Dashboard data is being exported as ${format.toUpperCase()}.`)
   }
@@ -221,7 +221,15 @@ const EnhancedDashboard: React.FC = () => {
         <ExportModal
           isOpen={exportModal}
           onClose={() => setExportModal(false)}
-          onExport={handleExport}
+          onExport={(filters, format) => handleExport(format, filters)}
+          title="Export Dashboard Data"
+          filterOptions={[
+            {
+              type: 'dateRange',
+              key: 'date',
+              label: 'Date Range'
+            }
+          ]}
         />
       </main>
     </div>
@@ -229,6 +237,9 @@ const EnhancedDashboard: React.FC = () => {
 }
 
 export default EnhancedDashboard
+
+
+
 
 
 
