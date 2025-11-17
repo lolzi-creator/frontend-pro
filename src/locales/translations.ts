@@ -924,6 +924,105 @@ export interface Translations {
     atLeastOneDefault: string
     maximumThreeRates: string
   }
+  
+  // Auth & Registration
+  auth: {
+    login: string
+    logout: string
+    register: string
+    signIn: string
+    signUp: string
+    welcome: string
+    welcomeToInvoSmart: string
+    smartFinanceManagement: string
+    invoicingPaymentsExpensesReports: string
+    getStarted: string
+    getStartedFreeTrial: string
+    dontHaveAccount: string
+    alreadyHaveAccount: string
+    email: string
+    password: string
+    confirmPassword: string
+    forgotPassword: string
+    rememberMe: string
+    signingIn: string
+    loginFailed: string
+    networkError: string
+    // Registration
+    registration: string
+    companyInformation: string
+    companyInfoDescription: string
+    addressContact: string
+    addressContactDescription: string
+    bankingInformation: string
+    bankingInfoDescription: string
+    createYourAccount: string
+    accountDescription: string
+    setupComplete: string
+    accountReady: string
+    welcomeToInvoSmartTitle: string
+    professionalInvoiceManagement: string
+    nextSteps: string
+    // Company fields
+    companyName: string
+    uidNumber: string
+    vatNumber: string
+    isVatRegistered: string
+    vatRegisteredDescription: string
+    streetAddress: string
+    zip: string
+    city: string
+    country: string
+    phone: string
+    companyEmail: string
+    website: string
+    bankName: string
+    iban: string
+    qrIban: string
+    qrIbanDescription: string
+    // User fields
+    yourName: string
+    defaultPaymentTerms: string
+    language: string
+    // Steps
+    step: string
+    of: string
+    back: string
+    next: string
+    completeSetup: string
+    creatingAccount: string
+    // Validation
+    fillAllRequiredFields: string
+    passwordsDoNotMatch: string
+    passwordMinLength: string
+    invalidSwissIban: string
+    ibanRequired: string
+    // Success
+    importCustomers: string
+    importCustomersDescription: string
+    createFirstInvoice: string
+    createFirstInvoiceDescription: string
+    importBankPayments: string
+    importBankPaymentsDescription: string
+    goToLogin: string
+    // Features
+    swissQrInvoices: string
+    swissQrInvoicesDescription: string
+    automaticMatching: string
+    automaticMatchingDescription: string
+    financialOverview: string
+    financialOverviewDescription: string
+    swissCompliant: string
+    // Payment terms
+    days14: string
+    days30: string
+    days60: string
+    // Languages
+    deutsch: string
+    francais: string
+    italiano: string
+    english: string
+  }
 }
 
 export const translations: Record<Language, Translations> = {
@@ -1833,6 +1932,94 @@ export const translations: Record<Language, Translations> = {
       pleaseEnterValidPercentage: 'Bitte geben Sie einen gültigen Prozentsatz ein (0-100)',
       atLeastOneDefault: 'Mindestens ein MWST-Satz muss als Standard markiert werden',
       maximumThreeRates: 'Sie können maximal 3 MWST-Sätze konfigurieren'
+    },
+    auth: {
+      login: 'Anmelden',
+      logout: 'Abmelden',
+      register: 'Registrieren',
+      signIn: 'Anmelden',
+      signUp: 'Registrieren',
+      welcome: 'Willkommen',
+      welcomeToInvoSmart: 'Willkommen bei InvoSmart',
+      smartFinanceManagement: 'Intelligentes Finanzmanagement für Schweizer Unternehmen',
+      invoicingPaymentsExpensesReports: 'Rechnungen • Zahlungen • Ausgaben • Berichte',
+      getStarted: 'Loslegen',
+      getStartedFreeTrial: 'Jetzt starten - Kostenlos testen',
+      dontHaveAccount: 'Haben Sie noch kein Konto?',
+      alreadyHaveAccount: 'Haben Sie bereits ein Konto?',
+      email: 'E-Mail-Adresse',
+      password: 'Passwort',
+      confirmPassword: 'Passwort bestätigen',
+      forgotPassword: 'Passwort vergessen?',
+      rememberMe: 'Angemeldet bleiben',
+      signingIn: 'Wird angemeldet...',
+      loginFailed: 'Anmeldung fehlgeschlagen',
+      networkError: 'Netzwerkfehler. Bitte versuchen Sie es erneut.',
+      registration: 'Registrierung',
+      companyInformation: 'Firmeninformationen',
+      companyInfoDescription: 'Beginnen wir mit Ihren Firmendaten',
+      addressContact: 'Adresse & Kontakt',
+      addressContactDescription: 'Wo befindet sich Ihr Unternehmen?',
+      bankingInformation: 'Bankinformationen',
+      bankingInfoDescription: 'Erforderlich für Schweizer QR-Rechnungen',
+      createYourAccount: 'Konto erstellen',
+      accountDescription: 'Richten Sie Ihre Anmeldedaten ein',
+      setupComplete: 'Einrichtung abgeschlossen!',
+      accountReady: 'Ihr InvoSmart-Konto ist bereit',
+      welcomeToInvoSmartTitle: 'Willkommen bei InvoSmart!',
+      professionalInvoiceManagement: 'Ihr professionelles Rechnungsmanagement beginnt jetzt',
+      nextSteps: 'Nächste Schritte:',
+      companyName: 'Firmenname',
+      uidNumber: 'UID-Nummer',
+      vatNumber: 'MWST-Nummer',
+      isVatRegistered: 'Ist Ihr Unternehmen mehrwertsteuerpflichtig?',
+      vatRegisteredDescription: 'Nur für mehrwertsteuerpflichtige Unternehmen erforderlich',
+      streetAddress: 'Straße und Hausnummer',
+      zip: 'PLZ',
+      city: 'Ort',
+      country: 'Land',
+      phone: 'Telefon',
+      companyEmail: 'Firmen-E-Mail',
+      website: 'Website',
+      bankName: 'Bankname',
+      iban: 'IBAN',
+      qrIban: 'QR-IBAN',
+      qrIbanDescription: 'Optional für schnellere Zahlungsabwicklung',
+      yourName: 'Ihr Name',
+      defaultPaymentTerms: 'Standard-Zahlungsbedingungen',
+      language: 'Sprache',
+      step: 'Schritt',
+      of: 'von',
+      back: 'Zurück',
+      next: 'Weiter',
+      completeSetup: 'Einrichtung abschließen →',
+      creatingAccount: 'Konto wird erstellt...',
+      fillAllRequiredFields: 'Bitte füllen Sie alle erforderlichen Felder aus',
+      passwordsDoNotMatch: 'Passwörter stimmen nicht überein',
+      passwordMinLength: 'Passwort muss mindestens 8 Zeichen lang sein',
+      invalidSwissIban: 'Ungültiges Schweizer IBAN-Format (sollte CHxx xxxx xxxx xxxx xxxx x sein)',
+      ibanRequired: 'IBAN ist für Schweizer QR-Rechnungen erforderlich',
+      importCustomers: 'Kunden importieren',
+      importCustomersDescription: 'CSV hochladen oder manuell hinzufügen',
+      createFirstInvoice: 'Erste Rechnung erstellen',
+      createFirstInvoiceDescription: 'Schweizer QR-Rechnungen sofort generieren',
+      importBankPayments: 'Bankzahlungen importieren',
+      importBankPaymentsDescription: 'Automatische Zahlungszuordnung',
+      goToLogin: 'Zur Anmeldung →',
+      swissQrInvoices: 'Schweizer QR-Rechnungen',
+      swissQrInvoicesDescription: 'Konform mit Schweizer Zahlungsstandards (SIX)',
+      automaticMatching: 'Automatische Zuordnung',
+      automaticMatchingDescription: 'Kontoauszüge importieren, Zahlungen automatisch zuordnen',
+      financialOverview: 'Finanzübersicht',
+      financialOverviewDescription: 'Einnahmen, Ausgaben und Cashflow verfolgen',
+      swissCompliant: '100% Schweizer Konform',
+      days14: '14 Tage',
+      days30: '30 Tage',
+      days60: '60 Tage',
+      deutsch: 'Deutsch',
+      francais: 'Français',
+      italiano: 'Italiano',
+      english: 'English'
     }
   },
   
@@ -2742,6 +2929,94 @@ export const translations: Record<Language, Translations> = {
       pleaseEnterValidPercentage: 'Veuillez entrer un pourcentage valide (0-100)',
       atLeastOneDefault: 'Au moins un taux de TVA doit être marqué comme défaut',
       maximumThreeRates: 'Vous pouvez configurer un maximum de 3 taux de TVA'
+    },
+    auth: {
+      login: 'Connexion',
+      logout: 'Déconnexion',
+      register: 'Inscription',
+      signIn: 'Se connecter',
+      signUp: 'S\'inscrire',
+      welcome: 'Bienvenue',
+      welcomeToInvoSmart: 'Bienvenue sur InvoSmart',
+      smartFinanceManagement: 'Gestion financière intelligente pour les entreprises suisses',
+      invoicingPaymentsExpensesReports: 'Facturation • Paiements • Dépenses • Rapports',
+      getStarted: 'Commencer',
+      getStartedFreeTrial: 'Commencer - Essai gratuit',
+      dontHaveAccount: 'Vous n\'avez pas de compte?',
+      alreadyHaveAccount: 'Vous avez déjà un compte?',
+      email: 'Adresse e-mail',
+      password: 'Mot de passe',
+      confirmPassword: 'Confirmer le mot de passe',
+      forgotPassword: 'Mot de passe oublié?',
+      rememberMe: 'Se souvenir de moi',
+      signingIn: 'Connexion en cours...',
+      loginFailed: 'Échec de la connexion',
+      networkError: 'Erreur réseau. Veuillez réessayer.',
+      registration: 'Inscription',
+      companyInformation: 'Informations sur l\'entreprise',
+      companyInfoDescription: 'Commençons par les détails de votre entreprise',
+      addressContact: 'Adresse & Contact',
+      addressContactDescription: 'Où se trouve votre entreprise?',
+      bankingInformation: 'Informations bancaires',
+      bankingInfoDescription: 'Requis pour les factures QR suisses',
+      createYourAccount: 'Créer votre compte',
+      accountDescription: 'Configurez vos identifiants de connexion',
+      setupComplete: 'Configuration terminée!',
+      accountReady: 'Votre compte InvoSmart est prêt',
+      welcomeToInvoSmartTitle: 'Bienvenue sur InvoSmart!',
+      professionalInvoiceManagement: 'Votre gestion de factures professionnelle commence maintenant',
+      nextSteps: 'Prochaines étapes:',
+      companyName: 'Nom de l\'entreprise',
+      uidNumber: 'Numéro UID',
+      vatNumber: 'Numéro de TVA',
+      isVatRegistered: 'Votre entreprise est-elle assujettie à la TVA?',
+      vatRegisteredDescription: 'Requis uniquement pour les entreprises assujetties à la TVA',
+      streetAddress: 'Adresse',
+      zip: 'Code postal',
+      city: 'Ville',
+      country: 'Pays',
+      phone: 'Téléphone',
+      companyEmail: 'E-mail de l\'entreprise',
+      website: 'Site web',
+      bankName: 'Nom de la banque',
+      iban: 'IBAN',
+      qrIban: 'QR-IBAN',
+      qrIbanDescription: 'Optionnel pour un traitement de paiement plus rapide',
+      yourName: 'Votre nom',
+      defaultPaymentTerms: 'Conditions de paiement par défaut',
+      language: 'Langue',
+      step: 'Étape',
+      of: 'de',
+      back: 'Retour',
+      next: 'Suivant',
+      completeSetup: 'Terminer la configuration →',
+      creatingAccount: 'Création du compte...',
+      fillAllRequiredFields: 'Veuillez remplir tous les champs obligatoires',
+      passwordsDoNotMatch: 'Les mots de passe ne correspondent pas',
+      passwordMinLength: 'Le mot de passe doit contenir au moins 8 caractères',
+      invalidSwissIban: 'Format IBAN suisse invalide (devrait être CHxx xxxx xxxx xxxx xxxx x)',
+      ibanRequired: 'L\'IBAN est requis pour les factures QR suisses',
+      importCustomers: 'Importer vos clients',
+      importCustomersDescription: 'Télécharger un CSV ou ajouter manuellement',
+      createFirstInvoice: 'Créer votre première facture',
+      createFirstInvoiceDescription: 'Générer des factures QR suisses instantanément',
+      importBankPayments: 'Importer les paiements bancaires',
+      importBankPaymentsDescription: 'Correspondance automatique des paiements',
+      goToLogin: 'Aller à la connexion →',
+      swissQrInvoices: 'Factures QR suisses',
+      swissQrInvoicesDescription: 'Conforme aux normes de paiement suisses (SIX)',
+      automaticMatching: 'Correspondance automatique',
+      automaticMatchingDescription: 'Importer les relevés bancaires, faire correspondre automatiquement les paiements',
+      financialOverview: 'Aperçu financier',
+      financialOverviewDescription: 'Suivre les revenus, les dépenses et les flux de trésorerie',
+      swissCompliant: '100% Conforme Suisse',
+      days14: '14 jours',
+      days30: '30 jours',
+      days60: '60 jours',
+      deutsch: 'Deutsch',
+      francais: 'Français',
+      italiano: 'Italiano',
+      english: 'English'
     }
   },
   
@@ -3651,6 +3926,94 @@ export const translations: Record<Language, Translations> = {
       pleaseEnterValidPercentage: 'Please enter a valid percentage (0-100)',
       atLeastOneDefault: 'At least one VAT rate must be marked as default',
       maximumThreeRates: 'You can configure a maximum of 3 VAT rates'
+    },
+    auth: {
+      login: 'Login',
+      logout: 'Logout',
+      register: 'Register',
+      signIn: 'Sign In',
+      signUp: 'Sign Up',
+      welcome: 'Welcome',
+      welcomeToInvoSmart: 'Welcome to InvoSmart',
+      smartFinanceManagement: 'Smart Finance Management for Swiss Businesses',
+      invoicingPaymentsExpensesReports: 'Invoicing • Payments • Expenses • Reports',
+      getStarted: 'Get Started',
+      getStartedFreeTrial: 'Get Started - Free Trial',
+      dontHaveAccount: 'Don\'t have an account?',
+      alreadyHaveAccount: 'Already have an account?',
+      email: 'Email Address',
+      password: 'Password',
+      confirmPassword: 'Confirm Password',
+      forgotPassword: 'Forgot Password?',
+      rememberMe: 'Remember Me',
+      signingIn: 'Signing in...',
+      loginFailed: 'Login failed',
+      networkError: 'Network error. Please try again.',
+      registration: 'Registration',
+      companyInformation: 'Company Information',
+      companyInfoDescription: 'Let\'s start with your company details',
+      addressContact: 'Address & Contact',
+      addressContactDescription: 'Where is your business located?',
+      bankingInformation: 'Banking Information',
+      bankingInfoDescription: 'Required for Swiss QR invoices',
+      createYourAccount: 'Create Your Account',
+      accountDescription: 'Set up your login credentials',
+      setupComplete: 'Setup Complete!',
+      accountReady: 'Your InvoSmart account is ready',
+      welcomeToInvoSmartTitle: 'Welcome to InvoSmart!',
+      professionalInvoiceManagement: 'Your professional invoice management starts now',
+      nextSteps: 'Next Steps:',
+      companyName: 'Company Name',
+      uidNumber: 'UID Number',
+      vatNumber: 'VAT Number',
+      isVatRegistered: 'Is your company VAT registered?',
+      vatRegisteredDescription: 'Required only for VAT-registered companies',
+      streetAddress: 'Street Address',
+      zip: 'ZIP',
+      city: 'City',
+      country: 'Country',
+      phone: 'Phone',
+      companyEmail: 'Company Email',
+      website: 'Website',
+      bankName: 'Bank Name',
+      iban: 'IBAN',
+      qrIban: 'QR-IBAN',
+      qrIbanDescription: 'Optional for faster payment processing',
+      yourName: 'Your Name',
+      defaultPaymentTerms: 'Default Payment Terms',
+      language: 'Language',
+      step: 'Step',
+      of: 'of',
+      back: 'Back',
+      next: 'Next',
+      completeSetup: 'Complete Setup →',
+      creatingAccount: 'Creating Account...',
+      fillAllRequiredFields: 'Please fill in all required fields',
+      passwordsDoNotMatch: 'Passwords do not match',
+      passwordMinLength: 'Password must be at least 8 characters',
+      invalidSwissIban: 'Invalid Swiss IBAN format (should be CHxx xxxx xxxx xxxx xxxx x)',
+      ibanRequired: 'IBAN is required for Swiss QR invoices',
+      importCustomers: 'Import your customers',
+      importCustomersDescription: 'Upload a CSV or add manually',
+      createFirstInvoice: 'Create your first invoice',
+      createFirstInvoiceDescription: 'Generate Swiss QR invoices instantly',
+      importBankPayments: 'Import bank payments',
+      importBankPaymentsDescription: 'Automatic payment matching',
+      goToLogin: 'Go to Login →',
+      swissQrInvoices: 'Swiss QR Invoices',
+      swissQrInvoicesDescription: 'Compliant with Swiss payment standards (SIX)',
+      automaticMatching: 'Automatic Matching',
+      automaticMatchingDescription: 'Import bank statements, auto-match payments',
+      financialOverview: 'Financial Overview',
+      financialOverviewDescription: 'Track income, expenses, and cash flow',
+      swissCompliant: '100% Swiss Compliant',
+      days14: '14 days',
+      days30: '30 days',
+      days60: '60 days',
+      deutsch: 'Deutsch',
+      francais: 'Français',
+      italiano: 'Italiano',
+      english: 'English'
     }
   },
   
@@ -4560,6 +4923,94 @@ export const translations: Record<Language, Translations> = {
       pleaseEnterValidPercentage: 'Inserisci una percentuale valida (0-100)',
       atLeastOneDefault: 'Almeno un\'aliquota IVA deve essere contrassegnata come predefinita',
       maximumThreeRates: 'Puoi configurare un massimo di 3 aliquote IVA'
+    },
+    auth: {
+      login: 'Accedi',
+      logout: 'Esci',
+      register: 'Registrati',
+      signIn: 'Accedi',
+      signUp: 'Registrati',
+      welcome: 'Benvenuto',
+      welcomeToInvoSmart: 'Benvenuto su InvoSmart',
+      smartFinanceManagement: 'Gestione finanziaria intelligente per aziende svizzere',
+      invoicingPaymentsExpensesReports: 'Fatturazione • Pagamenti • Spese • Report',
+      getStarted: 'Inizia',
+      getStartedFreeTrial: 'Inizia - Prova gratuita',
+      dontHaveAccount: 'Non hai un account?',
+      alreadyHaveAccount: 'Hai già un account?',
+      email: 'Indirizzo email',
+      password: 'Password',
+      confirmPassword: 'Conferma password',
+      forgotPassword: 'Password dimenticata?',
+      rememberMe: 'Ricordami',
+      signingIn: 'Accesso in corso...',
+      loginFailed: 'Accesso fallito',
+      networkError: 'Errore di rete. Riprova.',
+      registration: 'Registrazione',
+      companyInformation: 'Informazioni aziendali',
+      companyInfoDescription: 'Iniziamo con i dettagli della tua azienda',
+      addressContact: 'Indirizzo & Contatto',
+      addressContactDescription: 'Dove si trova la tua azienda?',
+      bankingInformation: 'Informazioni bancarie',
+      bankingInfoDescription: 'Richiesto per fatture QR svizzere',
+      createYourAccount: 'Crea il tuo account',
+      accountDescription: 'Configura le tue credenziali di accesso',
+      setupComplete: 'Configurazione completata!',
+      accountReady: 'Il tuo account InvoSmart è pronto',
+      welcomeToInvoSmartTitle: 'Benvenuto su InvoSmart!',
+      professionalInvoiceManagement: 'La tua gestione professionale delle fatture inizia ora',
+      nextSteps: 'Prossimi passi:',
+      companyName: 'Nome azienda',
+      uidNumber: 'Numero UID',
+      vatNumber: 'Numero IVA',
+      isVatRegistered: 'La tua azienda è registrata per l\'IVA?',
+      vatRegisteredDescription: 'Richiesto solo per aziende registrate IVA',
+      streetAddress: 'Indirizzo',
+      zip: 'CAP',
+      city: 'Città',
+      country: 'Paese',
+      phone: 'Telefono',
+      companyEmail: 'Email aziendale',
+      website: 'Sito web',
+      bankName: 'Nome banca',
+      iban: 'IBAN',
+      qrIban: 'QR-IBAN',
+      qrIbanDescription: 'Opzionale per elaborazione pagamenti più veloce',
+      yourName: 'Il tuo nome',
+      defaultPaymentTerms: 'Termini di pagamento predefiniti',
+      language: 'Lingua',
+      step: 'Passo',
+      of: 'di',
+      back: 'Indietro',
+      next: 'Avanti',
+      completeSetup: 'Completa configurazione →',
+      creatingAccount: 'Creazione account...',
+      fillAllRequiredFields: 'Compila tutti i campi obbligatori',
+      passwordsDoNotMatch: 'Le password non corrispondono',
+      passwordMinLength: 'La password deve contenere almeno 8 caratteri',
+      invalidSwissIban: 'Formato IBAN svizzero non valido (dovrebbe essere CHxx xxxx xxxx xxxx xxxx x)',
+      ibanRequired: 'IBAN è richiesto per fatture QR svizzere',
+      importCustomers: 'Importa i tuoi clienti',
+      importCustomersDescription: 'Carica un CSV o aggiungi manualmente',
+      createFirstInvoice: 'Crea la tua prima fattura',
+      createFirstInvoiceDescription: 'Genera fatture QR svizzere istantaneamente',
+      importBankPayments: 'Importa pagamenti bancari',
+      importBankPaymentsDescription: 'Corrispondenza automatica pagamenti',
+      goToLogin: 'Vai al login →',
+      swissQrInvoices: 'Fatture QR svizzere',
+      swissQrInvoicesDescription: 'Conforme agli standard di pagamento svizzeri (SIX)',
+      automaticMatching: 'Corrispondenza automatica',
+      automaticMatchingDescription: 'Importa estratti conto, abbina automaticamente i pagamenti',
+      financialOverview: 'Panoramica finanziaria',
+      financialOverviewDescription: 'Traccia entrate, spese e flusso di cassa',
+      swissCompliant: '100% Conforme Svizzero',
+      days14: '14 giorni',
+      days30: '30 giorni',
+      days60: '60 giorni',
+      deutsch: 'Deutsch',
+      francais: 'Français',
+      italiano: 'Italiano',
+      english: 'English'
     }
   }
 }

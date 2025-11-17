@@ -38,9 +38,9 @@ const EditExpense: React.FC = () => {
   const [categories, setCategories] = useState<string[]>([])
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [vatRates, setVatRates] = useState<Array<{ value: number; label: string }>>([
-    { value: 7.7, label: t.expense.vatStandard || '7.7% (Standard)' },
-    { value: 2.5, label: t.expense.vatReduced || '2.5% (Reduced)' },
-    { value: 3.7, label: t.expense.vatAccommodation || '3.7% (Accommodation)' },
+    { value: 8.1, label: t.expense.vatStandard || '8.1% (Standard)' },
+    { value: 2.6, label: t.expense.vatReduced || '2.6% (Reduced)' },
+    { value: 3.8, label: t.expense.vatAccommodation || '3.8% (Accommodation)' },
     { value: 0, label: t.expense.vatExempt || '0% (Exempt)' }
   ])
   
@@ -51,7 +51,7 @@ const EditExpense: React.FC = () => {
     subcategory: '',
     amount: 0,
     currency: 'CHF',
-    vatRate: 7.7,
+    vatRate: 8.1,
     expenseDate: new Date().toISOString().split('T')[0],
     paymentDate: '',
     paymentMethod: '',
@@ -132,7 +132,7 @@ const EditExpense: React.FC = () => {
           subcategory: expenseData.subcategory || '',
           amount: (expenseData.amount || 0) / 100, // Convert from Rappen
           currency: expenseData.currency || 'CHF',
-          vatRate: expenseData.vat_rate || expenseData.vatRate || 7.7,
+          vatRate: expenseData.vat_rate || expenseData.vatRate || 8.1,
           expenseDate: expenseData.expense_date || expenseData.expenseDate || new Date().toISOString().split('T')[0],
           paymentDate: expenseData.payment_date || expenseData.paymentDate || '',
           paymentMethod: expenseData.payment_method || expenseData.paymentMethod || '',

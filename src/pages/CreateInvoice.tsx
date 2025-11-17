@@ -62,9 +62,9 @@ const CreateInvoice: React.FC = () => {
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [vatRates, setVatRates] = useState<Array<{ value: number; label: string }>>([
-    { value: 7.7, label: `7.7% (${t.invoice.vatStandard || 'Standard'})` },
-    { value: 2.5, label: `2.5% (${t.invoice.vatReduced || 'Reduced'})` },
-    { value: 3.7, label: `3.7% (${t.invoice.vatAccommodation || 'Accommodation'})` },
+    { value: 8.1, label: `8.1% (${t.invoice.vatStandard || 'Standard'})` },
+    { value: 2.6, label: `2.6% (${t.invoice.vatReduced || 'Reduced'})` },
+    { value: 3.8, label: `3.8% (${t.invoice.vatAccommodation || 'Accommodation'})` },
     { value: 0, label: `0% (${t.invoice.vatExempt || 'Exempt'})` }
   ])
   
@@ -81,7 +81,7 @@ const CreateInvoice: React.FC = () => {
       unit: t.invoice.unitPiece || 'Piece',
       unitPrice: 0,
       discount: 0,
-      vatRate: 7.7
+      vatRate: 8.1
     }]
   })
 
@@ -112,7 +112,7 @@ const CreateInvoice: React.FC = () => {
         
         // Set default VAT rate for new items
         const defaultRate = response.data.vatRates.find((r: any) => r.isDefault)
-        if (defaultRate && newInvoice.items.length > 0 && newInvoice.items[0].vatRate === 7.7) {
+        if (defaultRate && newInvoice.items.length > 0 && newInvoice.items[0].vatRate === 8.1) {
           setNewInvoice({
             ...newInvoice,
             items: newInvoice.items.map(item => ({
@@ -188,7 +188,7 @@ const CreateInvoice: React.FC = () => {
         unit: t.invoice.unitPiece || 'Piece',
         unitPrice: 0,
         discount: 0,
-        vatRate: 7.7
+        vatRate: 8.1
       }]
     })
   }

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiClient } from '../lib/api'
+import { useLanguage } from '../contexts/LanguageContext'
 
 const Login: React.FC = () => {
   const navigate = useNavigate()
+  const { t, language, setLanguage } = useLanguage()
   const [showLogin, setShowLogin] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
@@ -37,11 +39,11 @@ const Login: React.FC = () => {
         // Redirect to dashboard
         navigate('/dashboard')
       } else {
-        setError(response.error || 'Login failed')
+        setError(response.error || t.auth.loginFailed)
       }
     } catch (err: any) {
       console.error('Login error:', err)
-      setError(err.response?.data?.error || 'Network error. Please try again.')
+      setError(err.response?.data?.error || t.auth.networkError)
     } finally {
       setLoading(false)
     }
@@ -56,6 +58,31 @@ const Login: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center px-4 py-8">
+      {/* Language Selector - Top Right */}
+      <div className="fixed top-4 right-4 z-50">
+        <div className="bg-white rounded-lg shadow-lg border border-slate-200 p-2 flex gap-1">
+          {(['de', 'fr', 'en', 'it'] as const).map((lang) => (
+            <button
+              key={lang}
+              onClick={() => setLanguage(lang)}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                language === lang
+                  ? 'bg-[#ff6b35] text-white shadow-sm'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+              title={
+                lang === 'de' ? t.auth.deutsch :
+                lang === 'fr' ? t.auth.francais :
+                lang === 'it' ? t.auth.italiano :
+                t.auth.english
+              }
+            >
+              {lang.toUpperCase()}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="w-full max-w-6xl">
         {/* Logo & Branding */}
         <div className="text-center mb-12">
@@ -64,10 +91,10 @@ const Login: React.FC = () => {
             <span className="text-[#ff6b35]">Smart</span>
           </h1>
           <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-            Smart Finance Management for Swiss Businesses
+            {t.auth.smartFinanceManagement}
           </p>
           <p className="text-slate-500 mt-2">
-            Invoicing • Payments • Expenses • Reports
+            {t.auth.invoicingPaymentsExpensesReports}
           </p>
         </div>
 
@@ -82,8 +109,8 @@ const Login: React.FC = () => {
                   </svg>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-slate-900 text-lg mb-1">Swiss QR Invoices</h3>
-                  <p className="text-sm text-slate-600">Compliant with Swiss payment standards (SIX)</p>
+                  <h3 className="font-semibold text-slate-900 text-lg mb-1">{t.auth.swissQrInvoices}</h3>
+                  <p className="text-sm text-slate-600">{t.auth.swissQrInvoicesDescription}</p>
                 </div>
               </div>
             </div>
@@ -96,8 +123,8 @@ const Login: React.FC = () => {
                   </svg>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-slate-900 text-lg mb-1">Automatic Matching</h3>
-                  <p className="text-sm text-slate-600">Import bank statements, auto-match payments</p>
+                  <h3 className="font-semibold text-slate-900 text-lg mb-1">{t.auth.automaticMatching}</h3>
+                  <p className="text-sm text-slate-600">{t.auth.automaticMatchingDescription}</p>
                 </div>
               </div>
             </div>
@@ -110,8 +137,8 @@ const Login: React.FC = () => {
                   </svg>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-slate-900 text-lg mb-1">Financial Overview</h3>
-                  <p className="text-sm text-slate-600">Track income, expenses, and cash flow</p>
+                  <h3 className="font-semibold text-slate-900 text-lg mb-1">{t.auth.financialOverview}</h3>
+                  <p className="text-sm text-slate-600">{t.auth.financialOverviewDescription}</p>
                 </div>
               </div>
             </div>
@@ -123,27 +150,27 @@ const Login: React.FC = () => {
               /* Welcome View */
               <div className="p-8">
                 <h2 className="text-2xl font-bold text-slate-900 text-center mb-6" style={{fontFamily: 'Poppins'}}>
-                  Welcome to InvoSmart
+                  {t.auth.welcomeToInvoSmart}
                 </h2>
 
                 <button
                   onClick={() => navigate('/register')}
                   className="w-full bg-[#ff6b35] text-white font-semibold py-4 rounded-xl hover:bg-[#ff5722] transition-all transform hover:scale-[1.02] shadow-lg mb-4"
                 >
-                  Get Started - Free Trial
+                  {t.auth.getStartedFreeTrial}
                 </button>
 
                 <button
                   onClick={() => setShowLogin(true)}
                   className="w-full bg-slate-100 text-slate-900 font-semibold py-4 rounded-xl hover:bg-slate-200 transition-all"
                 >
-                  Sign In
+                  {t.auth.signIn}
                 </button>
 
                 <div className="mt-8 pt-6 border-t border-slate-200">
                   <div className="text-center space-y-2">
                     <div className="text-[#ff6b35] text-2xl font-bold">100%</div>
-                    <div className="text-slate-600 text-sm">Swiss Compliant</div>
+                    <div className="text-slate-600 text-sm">{t.auth.swissCompliant}</div>
                   </div>
                 </div>
               </div>
@@ -151,7 +178,7 @@ const Login: React.FC = () => {
               /* Login Form */
               <div className="p-8">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold text-slate-900" style={{fontFamily: 'Poppins'}}>Sign In</h2>
+                  <h2 className="text-2xl font-bold text-slate-900" style={{fontFamily: 'Poppins'}}>{t.auth.signIn}</h2>
                   <button
                     onClick={() => {
                       setShowLogin(false)
@@ -168,7 +195,7 @@ const Login: React.FC = () => {
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
                     <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
-                      Email Address
+                      {t.auth.email}
                     </label>
                     <input
                       id="email"
@@ -185,7 +212,7 @@ const Login: React.FC = () => {
 
                   <div>
                     <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-2">
-                      Password
+                      {t.auth.password}
                     </label>
                     <input
                       id="password"
@@ -222,22 +249,22 @@ const Login: React.FC = () => {
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        Signing in...
+                        {t.auth.signingIn}
                       </div>
                     ) : (
-                      'Sign In'
+                      t.auth.signIn
                     )}
                   </button>
 
                   <div className="text-center pt-4 border-t border-slate-200">
                     <p className="text-sm text-slate-600">
-                      Don't have an account?{' '}
+                      {t.auth.dontHaveAccount}{' '}
                       <button
                         type="button"
                         className="text-[#ff6b35] font-semibold hover:text-[#ff5722] transition-colors"
                         onClick={() => navigate('/register')}
                       >
-                        Get Started
+                        {t.auth.getStarted}
                       </button>
                     </p>
                   </div>

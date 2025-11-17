@@ -2,15 +2,18 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiClient } from '../lib/api'
 import { useToast } from '../contexts/ToastContext'
+import { useLanguage } from '../contexts/LanguageContext'
 
 type Step = 1 | 2 | 3 | 4 | 5
 
 const Register: React.FC = () => {
   const navigate = useNavigate()
   const { showSuccess, showError } = useToast()
+  const { t, language, setLanguage } = useLanguage()
   const [currentStep, setCurrentStep] = useState<Step>(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [isVatRegistered, setIsVatRegistered] = useState(false)
 
   // Form data
   const [formData, setFormData] = useState({
@@ -59,39 +62,44 @@ const Register: React.FC = () => {
     switch (step) {
       case 1:
         if (!formData.companyName || !formData.uid) {
-          setError('Please fill in all required fields')
+          setError(t.auth.fillAllRequiredFields)
+          return false
+        }
+        // VAT number is only required if company is VAT registered
+        if (isVatRegistered && !formData.vatNumber) {
+          setError(t.auth.fillAllRequiredFields)
           return false
         }
         return true
       case 2:
         if (!formData.address || !formData.zip || !formData.city || !formData.companyEmail) {
-          setError('Please fill in all required fields')
+          setError(t.auth.fillAllRequiredFields)
           return false
         }
         return true
       case 3:
         if (!formData.iban) {
-          setError('IBAN is required for Swiss QR invoices')
+          setError(t.auth.ibanRequired)
           return false
         }
         // Basic IBAN validation
         const ibanClean = formData.iban.replace(/\s/g, '')
         if (!ibanClean.startsWith('CH') || ibanClean.length !== 21) {
-          setError('Invalid Swiss IBAN format (should be CHxx xxxx xxxx xxxx xxxx x)')
+          setError(t.auth.invalidSwissIban)
           return false
         }
         return true
       case 4:
         if (!formData.name || !formData.email || !formData.password) {
-          setError('Please fill in all required fields')
+          setError(t.auth.fillAllRequiredFields)
           return false
         }
         if (formData.password !== formData.confirmPassword) {
-          setError('Passwords do not match')
+          setError(t.auth.passwordsDoNotMatch)
           return false
         }
         if (formData.password.length < 8) {
-          setError('Password must be at least 8 characters')
+          setError(t.auth.passwordMinLength)
           return false
         }
         return true
@@ -166,6 +174,31 @@ const Register: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
+      {/* Language Selector - Top Right */}
+      <div className="fixed top-4 right-4 z-50">
+        <div className="bg-white rounded-lg shadow-lg border border-slate-200 p-2 flex gap-1">
+          {(['de', 'fr', 'en', 'it'] as const).map((lang) => (
+            <button
+              key={lang}
+              onClick={() => setLanguage(lang)}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                language === lang
+                  ? 'bg-[#ff6b35] text-white shadow-sm'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+              title={
+                lang === 'de' ? t.auth.deutsch :
+                lang === 'fr' ? t.auth.francais :
+                lang === 'it' ? t.auth.italiano :
+                t.auth.english
+              }
+            >
+              {lang.toUpperCase()}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="w-full max-w-2xl">
         {/* Logo */}
         <div className="text-center mb-8">
@@ -173,7 +206,7 @@ const Register: React.FC = () => {
             <span className="text-slate-900">Invo</span>
             <span className="text-[#ff6b35]">Smart</span>
           </h1>
-          <p className="text-slate-600">Smart Invoice Management for Swiss Businesses</p>
+          <p className="text-slate-600">{t.auth.smartFinanceManagement}</p>
         </div>
 
         {/* Stepper Card */}
@@ -204,7 +237,7 @@ const Register: React.FC = () => {
             </div>
             <div className="text-center">
               <span className="text-sm font-medium text-slate-600">
-                Step {currentStep} of 5
+                {t.auth.step} {currentStep} {t.auth.of} 5
               </span>
             </div>
           </div>
@@ -215,13 +248,13 @@ const Register: React.FC = () => {
             {currentStep === 1 && (
               <div className="space-y-6">
                 <div className="text-center mb-6">
-                  <h2 className="text-2xl font-bold text-slate-900 mb-2" style={{fontFamily: 'Poppins'}}>Company Information</h2>
-                  <p className="text-slate-600">Let's start with your company details</p>
+                  <h2 className="text-2xl font-bold text-slate-900 mb-2" style={{fontFamily: 'Poppins'}}>{t.auth.companyInformation}</h2>
+                  <p className="text-slate-600">{t.auth.companyInfoDescription}</p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Company Name <span className="text-red-500">*</span>
+                    {t.auth.companyName} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -234,7 +267,7 @@ const Register: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    UID Number <span className="text-red-500">*</span>
+                    {t.auth.uidNumber} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -245,16 +278,40 @@ const Register: React.FC = () => {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">VAT Number</label>
-                  <input
-                    type="text"
-                    value={formData.vatNumber}
-                    onChange={(e) => updateFormData('vatNumber', e.target.value)}
-                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#ff6b35] focus:border-transparent outline-none transition font-mono"
-                    placeholder="CHE-123.456.789 MWST"
-                  />
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <label className="flex items-start cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isVatRegistered}
+                      onChange={(e) => {
+                        setIsVatRegistered(e.target.checked)
+                        if (!e.target.checked) {
+                          updateFormData('vatNumber', '')
+                        }
+                      }}
+                      className="mt-1 mr-3 w-5 h-5 text-[#ff6b35] border-slate-300 rounded focus:ring-[#ff6b35]"
+                    />
+                    <div>
+                      <div className="font-medium text-slate-900">{t.auth.isVatRegistered}</div>
+                      <div className="text-sm text-slate-600 mt-1">{t.auth.vatRegisteredDescription}</div>
+                    </div>
+                  </label>
                 </div>
+
+                {isVatRegistered && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      {t.auth.vatNumber} <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.vatNumber}
+                      onChange={(e) => updateFormData('vatNumber', e.target.value)}
+                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#ff6b35] focus:border-transparent outline-none transition font-mono"
+                      placeholder="CHE-123.456.789 MWST"
+                    />
+                  </div>
+                )}
               </div>
             )}
 
@@ -262,13 +319,13 @@ const Register: React.FC = () => {
             {currentStep === 2 && (
               <div className="space-y-6">
                 <div className="text-center mb-6">
-                  <h2 className="text-2xl font-bold text-slate-900 mb-2" style={{fontFamily: 'Poppins'}}>Address & Contact</h2>
-                  <p className="text-slate-600">Where is your business located?</p>
+                  <h2 className="text-2xl font-bold text-slate-900 mb-2" style={{fontFamily: 'Poppins'}}>{t.auth.addressContact}</h2>
+                  <p className="text-slate-600">{t.auth.addressContactDescription}</p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Street Address <span className="text-red-500">*</span>
+                    {t.auth.streetAddress} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -282,7 +339,7 @@ const Register: React.FC = () => {
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                      ZIP <span className="text-red-500">*</span>
+                      {t.auth.zip} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -294,7 +351,7 @@ const Register: React.FC = () => {
                   </div>
                   <div className="col-span-2">
                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                      City <span className="text-red-500">*</span>
+                      {t.auth.city} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -308,7 +365,7 @@ const Register: React.FC = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Phone</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">{t.auth.phone}</label>
                     <input
                       type="tel"
                       value={formData.phone}
@@ -319,7 +376,7 @@ const Register: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Email <span className="text-red-500">*</span>
+                      {t.auth.companyEmail} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="email"
@@ -332,7 +389,7 @@ const Register: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Website</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">{t.auth.website}</label>
                   <input
                     type="url"
                     value={formData.website}
@@ -348,8 +405,8 @@ const Register: React.FC = () => {
             {currentStep === 3 && (
               <div className="space-y-6">
                 <div className="text-center mb-6">
-                  <h2 className="text-2xl font-bold text-slate-900 mb-2" style={{fontFamily: 'Poppins'}}>Banking Information</h2>
-                  <p className="text-slate-600">Required for Swiss QR invoices</p>
+                  <h2 className="text-2xl font-bold text-slate-900 mb-2" style={{fontFamily: 'Poppins'}}>{t.auth.bankingInformation}</h2>
+                  <p className="text-slate-600">{t.auth.bankingInfoDescription}</p>
                 </div>
 
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
@@ -358,14 +415,14 @@ const Register: React.FC = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <div className="text-sm text-blue-800">
-                      <p className="font-semibold mb-1">Swiss QR Code Setup</p>
-                      <p>Your IBAN enables automatic payment matching and Swiss QR code generation on invoices.</p>
+                      <p className="font-semibold mb-1">{t.auth.swissQrInvoices}</p>
+                      <p>{t.auth.swissQrInvoicesDescription}</p>
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Bank Name</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">{t.auth.bankName}</label>
                   <input
                     type="text"
                     value={formData.bankName}
@@ -377,7 +434,7 @@ const Register: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    IBAN <span className="text-red-500">*</span>
+                    {t.auth.iban} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -392,7 +449,7 @@ const Register: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    QR-IBAN <span className="text-slate-400">(Optional)</span>
+                    {t.auth.qrIban} <span className="text-slate-400">({t.common.optional})</span>
                   </label>
                   <input
                     type="text"
@@ -402,7 +459,7 @@ const Register: React.FC = () => {
                     placeholder="CH44 3199 9123 0008 8901 2"
                     maxLength={26}
                   />
-                  <p className="text-xs text-slate-500 mt-1">Optional QR-IBAN for faster payment processing</p>
+                  <p className="text-xs text-slate-500 mt-1">{t.auth.qrIbanDescription}</p>
                 </div>
               </div>
             )}
@@ -411,13 +468,13 @@ const Register: React.FC = () => {
             {currentStep === 4 && (
               <div className="space-y-6">
                 <div className="text-center mb-6">
-                  <h2 className="text-2xl font-bold text-slate-900 mb-2" style={{fontFamily: 'Poppins'}}>Create Your Account</h2>
-                  <p className="text-slate-600">Set up your login credentials</p>
+                  <h2 className="text-2xl font-bold text-slate-900 mb-2" style={{fontFamily: 'Poppins'}}>{t.auth.createYourAccount}</h2>
+                  <p className="text-slate-600">{t.auth.accountDescription}</p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Your Name <span className="text-red-500">*</span>
+                    {t.auth.yourName} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -430,7 +487,7 @@ const Register: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Email <span className="text-red-500">*</span>
+                    {t.auth.email} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="email"
@@ -443,7 +500,7 @@ const Register: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Password <span className="text-red-500">*</span>
+                    {t.auth.password} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="password"
@@ -456,7 +513,7 @@ const Register: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Confirm Password <span className="text-red-500">*</span>
+                    {t.auth.confirmPassword} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="password"
@@ -471,28 +528,28 @@ const Register: React.FC = () => {
                   <h3 className="font-semibold text-slate-900 mb-2">Business Settings</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">Default Payment Terms</label>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">{t.auth.defaultPaymentTerms}</label>
                       <select
                         value={formData.paymentTerms}
                         onChange={(e) => updateFormData('paymentTerms', parseInt(e.target.value))}
                         className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-[#ff6b35] outline-none"
                       >
-                        <option value="14">14 days</option>
-                        <option value="30">30 days</option>
-                        <option value="60">60 days</option>
+                        <option value="14">{t.auth.days14}</option>
+                        <option value="30">{t.auth.days30}</option>
+                        <option value="60">{t.auth.days60}</option>
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">Language</label>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">{t.auth.language}</label>
                       <select
                         value={formData.defaultLanguage}
                         onChange={(e) => updateFormData('defaultLanguage', e.target.value)}
                         className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-[#ff6b35] outline-none"
                       >
-                        <option value="de">Deutsch</option>
-                        <option value="fr">Français</option>
-                        <option value="it">Italiano</option>
-                        <option value="en">English</option>
+                        <option value="de">{t.auth.deutsch}</option>
+                        <option value="fr">{t.auth.francais}</option>
+                        <option value="it">{t.auth.italiano}</option>
+                        <option value="en">{t.auth.english}</option>
                       </select>
                     </div>
                   </div>
@@ -509,13 +566,13 @@ const Register: React.FC = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
-                  <h2 className="text-2xl font-bold text-slate-900 mb-2" style={{fontFamily: 'Poppins'}}>Setup Complete!</h2>
-                  <p className="text-slate-600">Your InvoSmart account is ready</p>
+                  <h2 className="text-2xl font-bold text-slate-900 mb-2" style={{fontFamily: 'Poppins'}}>{t.auth.setupComplete}</h2>
+                  <p className="text-slate-600">{t.auth.accountReady}</p>
                 </div>
 
                 <div className="bg-gradient-to-br from-[#ff6b35] to-[#ff5722] rounded-xl p-8 text-white text-center">
-                  <h3 className="text-xl font-bold mb-2">Welcome to InvoSmart!</h3>
-                  <p className="text-orange-100 mb-4">Your professional invoice management starts now</p>
+                  <h3 className="text-xl font-bold mb-2">{t.auth.welcomeToInvoSmartTitle}</h3>
+                  <p className="text-orange-100 mb-4">{t.auth.professionalInvoiceManagement}</p>
                   <div className="bg-white/10 rounded-lg p-4 mb-4">
                     <p className="text-sm mb-2">Company: <strong>{formData.companyName}</strong></p>
                     <p className="text-sm">IBAN configured: <strong className="font-mono">{formData.iban}</strong></p>
@@ -523,15 +580,15 @@ const Register: React.FC = () => {
                 </div>
 
                 <div className="space-y-4">
-                  <h3 className="font-semibold text-slate-900">Next Steps:</h3>
+                  <h3 className="font-semibold text-slate-900">{t.auth.nextSteps}</h3>
                   <div className="space-y-3">
                     <div className="flex items-start">
                       <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center mr-3 mt-0.5">
                         <span className="text-xs font-semibold text-slate-600">1</span>
                       </div>
                       <div>
-                        <p className="font-medium text-slate-900">Import your customers</p>
-                        <p className="text-sm text-slate-600">Upload a CSV or add manually</p>
+                        <p className="font-medium text-slate-900">{t.auth.importCustomers}</p>
+                        <p className="text-sm text-slate-600">{t.auth.importCustomersDescription}</p>
                       </div>
                     </div>
                     <div className="flex items-start">
@@ -539,8 +596,8 @@ const Register: React.FC = () => {
                         <span className="text-xs font-semibold text-slate-600">2</span>
                       </div>
                       <div>
-                        <p className="font-medium text-slate-900">Create your first invoice</p>
-                        <p className="text-sm text-slate-600">Generate Swiss QR invoices instantly</p>
+                        <p className="font-medium text-slate-900">{t.auth.createFirstInvoice}</p>
+                        <p className="text-sm text-slate-600">{t.auth.createFirstInvoiceDescription}</p>
                       </div>
                     </div>
                     <div className="flex items-start">
@@ -548,8 +605,8 @@ const Register: React.FC = () => {
                         <span className="text-xs font-semibold text-slate-600">3</span>
                       </div>
                       <div>
-                        <p className="font-medium text-slate-900">Import bank payments</p>
-                        <p className="text-sm text-slate-600">Automatic payment matching</p>
+                        <p className="font-medium text-slate-900">{t.auth.importBankPayments}</p>
+                        <p className="text-sm text-slate-600">{t.auth.importBankPaymentsDescription}</p>
                       </div>
                     </div>
                   </div>
@@ -559,7 +616,7 @@ const Register: React.FC = () => {
                   onClick={() => navigate('/login')}
                   className="w-full bg-[#ff6b35] text-white font-semibold py-4 rounded-lg hover:bg-[#ff5722] transition-all transform hover:scale-[1.02] shadow-lg"
                 >
-                  Go to Login →
+                  {t.auth.goToLogin}
                 </button>
               </div>
             )}
@@ -584,7 +641,7 @@ const Register: React.FC = () => {
                     : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
                 }`}
               >
-                ← Back
+                ← {t.auth.back}
               </button>
 
               {currentStep === 4 ? (
@@ -593,14 +650,14 @@ const Register: React.FC = () => {
                   disabled={loading}
                   className="px-8 py-3 bg-[#ff6b35] text-white font-semibold rounded-lg hover:bg-[#ff5722] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? 'Creating Account...' : 'Complete Setup →'}
+                  {loading ? t.auth.creatingAccount : t.auth.completeSetup}
                 </button>
               ) : (
                 <button
                   onClick={nextStep}
                   className="px-8 py-3 bg-[#ff6b35] text-white font-semibold rounded-lg hover:bg-[#ff5722] transition-all"
                 >
-                  Next →
+                  {t.auth.next} →
                 </button>
               )}
             </div>
@@ -610,12 +667,12 @@ const Register: React.FC = () => {
         {/* Login Link */}
         <div className="text-center mt-6">
           <p className="text-slate-600">
-            Already have an account?{' '}
+            {t.auth.alreadyHaveAccount}{' '}
             <button
               onClick={() => navigate('/login')}
               className="text-[#ff6b35] font-semibold hover:text-[#ff5722] transition-colors"
             >
-              Sign in
+              {t.auth.signIn}
             </button>
           </p>
         </div>

@@ -36,9 +36,9 @@ const CreateExpense: React.FC = () => {
   const [categories, setCategories] = useState<string[]>([])
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [vatRates, setVatRates] = useState<Array<{ value: number; label: string }>>([
-    { value: 7.7, label: t.expense.vatStandard || '7.7% (Standard)' },
-    { value: 2.5, label: t.expense.vatReduced || '2.5% (Reduced)' },
-    { value: 3.7, label: t.expense.vatAccommodation || '3.7% (Accommodation)' },
+    { value: 8.1, label: t.expense.vatStandard || '8.1% (Standard)' },
+    { value: 2.6, label: t.expense.vatReduced || '2.6% (Reduced)' },
+    { value: 3.8, label: t.expense.vatAccommodation || '3.8% (Accommodation)' },
     { value: 0, label: t.expense.vatExempt || '0% (Exempt)' }
   ])
   
@@ -49,7 +49,7 @@ const CreateExpense: React.FC = () => {
     subcategory: '',
     amount: 0,
     currency: 'CHF',
-    vatRate: 7.7,
+    vatRate: 8.1,
     expenseDate: new Date().toISOString().split('T')[0],
     paymentDate: '',
     paymentMethod: '',
@@ -93,7 +93,7 @@ const CreateExpense: React.FC = () => {
         
         // Set default VAT rate
         const defaultRate = response.data.vatRates.find((r: any) => r.isDefault)
-        if (defaultRate && newExpense.vatRate === 7.7) {
+        if (defaultRate && newExpense.vatRate === 8.1) {
           setNewExpense({ ...newExpense, vatRate: defaultRate.rate })
         }
       }
